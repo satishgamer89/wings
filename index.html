@@ -1,167 +1,17 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Easy Billing — Firebase</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Easy Billing — Firebase + PDF</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-
-<!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/10.6.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
 
-<style>
-:root{--bg:#f4f7fb;--card:#ffffff;--muted:#6b7280;--accent:#3b82f6;--accent-2:#7c3aed;--danger:#ef4444;--radius:12px;}
-*{box-sizing:border-box;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;}
-body{margin:0;background:var(--bg);color:#0f172a;padding:24px;}
-.wrap{max-width:1100px;margin:0 auto;}
-header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
-.logo{width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px;box-shadow:0 8px 30px rgba(59,130,246,0.12)}
-h1{margin:0;font-size:20px}
-.muted{color:var(--muted);font-size:13px}
-.card{background:var(--card);border-radius:var(--radius);padding:18px;box-shadow:0 8px 24px rgba(15,23,42,0.04);border:1px solid rgba(15,23,42,0.03);margin-bottom:16px;}
-input, textarea, select{width:100%;padding:10px;border-radius:10px;border:1px solid #e6e9ef;background:#fbfdff;font-size:14px;margin-top:6px;}
-.btn{background:var(--accent);color:#fff;padding:10px 14px;border:none;border-radius:10px;cursor:pointer;font-weight:600;margin-top:6px;}
-.btn.ghost{background:transparent;border:1px solid #e6e9ef;color:var(--accent);}
-.btn.warn{background:var(--danger);}
-.row{display:flex;gap:10px;align-items:center;margin-top:10px;}
-.items{margin-top:12px;}
-.item-row{display:flex;gap:8px;margin-top:8px;align-items:center;}
-.desc{flex:1;}
-.qty{width:80px;}
-.price{width:110px;}
-.remove{background:transparent;border:none;color:var(--danger);font-size:20px;cursor:pointer;}
-.summary b{display:block;font-size:18px;margin-top:6px;}
-table{width:100%;border-collapse:collapse;margin-top:12px;}
-th,td{padding:10px;border-bottom:1px solid #f0f2f5;text-align:left;font-size:14px;}
-.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:1200;padding:20px;}
-.modal{width:100%;max-width:820px;background:#fff;border-radius:12px;padding:18px;max-height:90vh;overflow:auto;}
-.pdf-note{color:var(--muted);font-size:13px;text-align:center;margin-top:12px;}
-</style>
-</head>
-<body>
-<div class="wrap">
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js";
+import { getFirestore, collection, doc, setDoc, getDocs, query, where, orderBy, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore.js";
 
-<header>
-  <div class="logo">EB</div>
-  <div>
-    <h1>Easy Billing — Firebase</h1>
-    <div class="muted">Invoices • PDF/Print • Multi-user</div>
-  </div>
-</header>
-
-<!-- Authentication -->
-<div id="authPane" class="card">
-  <h3>Register / Login</h3>
-  <label>Email</label>
-  <input id="authEmail" type="email" placeholder="Enter email">
-  <label>Password</label>
-  <input id="authPassword" type="password" placeholder="Enter password">
-  <div class="row">
-    <button class="btn" id="registerBtn">Register</button>
-    <button class="btn ghost" id="loginBtn">Login</button>
-  </div>
-  <div id="authMsg" style="color:red;margin-top:6px;"></div>
-</div>
-
-<!-- Billing UI -->
-<div id="billingPane" style="display:none;">
-
-  <div class="card">
-    <h3>Company Info</h3>
-    <label>Company name</label>
-    <input id="companyName" type="text">
-    <label>Address</label>
-    <textarea id="companyAddress" rows="2"></textarea>
-    <label>Phone</label>
-    <input id="companyPhone" type="text">
-    <label>GST / Tax no.</label>
-    <input id="companyGST" type="text">
-    <label>Default Tax %</label>
-    <input id="defaultTax" type="number">
-    <button class="btn" id="saveCompanyBtn">Save Company</button>
-  </div>
-
-  <div class="card">
-    <h3>Client Info</h3>
-    <label>Client name</label>
-    <input id="clientName" type="text">
-    <label>Email</label>
-    <input id="clientEmail" type="email">
-    <label>Phone</label>
-    <input id="clientPhone" type="text">
-    <label>Due date</label>
-    <input id="dueDate" type="date">
-  </div>
-
-  <div class="card">
-    <h3>Items</h3>
-    <div id="itemsContainer" class="items"></div>
-    <div class="row">
-      <button class="btn" id="addItemBtn">+ Add Item</button>
-      <button class="btn ghost" id="clearItemsBtn">Clear</button>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="row">
-      <div style="flex:1">
-        <label>Tax %</label>
-        <input id="taxInput" type="number">
-      </div>
-      <div style="width:150px">
-        <label>Currency</label>
-        <select id="currencySelect">
-          <option value="₹">INR</option>
-          <option value="$">USD</option>
-          <option value="€">EUR</option>
-        </select>
-      </div>
-    </div>
-    <button class="btn" id="generateBtn">Generate & Save Invoice</button>
-  </div>
-
-  <div class="card">
-    <h3>Invoice Records</h3>
-    <input id="searchInput" placeholder="Search by client or ID">
-    <table>
-      <thead><tr><th>ID</th><th>Client</th><th>Date</th><th style="text-align:right">Total</th><th></th></tr></thead>
-      <tbody id="recordsBody"></tbody>
-    </table>
-  </div>
-
-</div>
-
-<!-- Modal -->
-<div class="modal-backdrop" id="modalBackdrop">
-  <div class="modal">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <div>
-        <div style="font-weight:700" id="modalInv">Invoice #</div>
-        <div style="color:var(--muted);font-size:13px" id="modalDate">Date</div>
-      </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn" id="printBtn">Print</button>
-        <button class="btn" id="downloadBtn">Download PDF</button>
-        <button class="btn ghost" id="closeModalBtn">Close</button>
-      </div>
-    </div>
-    <hr>
-    <div id="modalBillTo"></div>
-    <table>
-      <thead><tr><th>Description</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead>
-      <tbody id="modalItemsBody"></tbody>
-    </table>
-    <div style="margin-top:12px;display:flex;justify-content:space-between">
-      <b id="modalSubtotal"></b><b id="modalTax"></b><b id="modalTotal"></b>
-    </div>
-  </div>
-</div>
-
-<script>
-// Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyALJEa8u1PdLwmOjbtfWWpBRwdNwAIvKAU",
   authDomain: "billing-database-18013.firebaseapp.com",
@@ -171,19 +21,20 @@ const firebaseConfig = {
   messagingSenderId: "108079794708",
   appId: "1:108079794708:web:3cc0c8654b1520e835b501"
 };
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
 
-// Auth elements
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// DOM elements
+const authPane = document.getElementById('authPane');
+const billingPane = document.getElementById('billingPane');
 const authEmail = document.getElementById('authEmail');
 const authPassword = document.getElementById('authPassword');
 const registerBtn = document.getElementById('registerBtn');
 const loginBtn = document.getElementById('loginBtn');
 const authMsg = document.getElementById('authMsg');
 
-// Billing elements
-const billingPane = document.getElementById('billingPane');
 const clientName = document.getElementById('clientName');
 const clientEmail = document.getElementById('clientEmail');
 const clientPhone = document.getElementById('clientPhone');
@@ -195,10 +46,12 @@ const taxInput = document.getElementById('taxInput');
 const currencySelect = document.getElementById('currencySelect');
 const generateBtn = document.getElementById('generateBtn');
 const recordsBody = document.getElementById('recordsBody');
+
+// Modal elements
 const modalBackdrop = document.getElementById('modalBackdrop');
-const modalInv = document.getElementById('modalInv');
+const modalInvId = document.getElementById('modalInvId');
+const modalClient = document.getElementById('modalClient');
 const modalDate = document.getElementById('modalDate');
-const modalBillTo = document.getElementById('modalBillTo');
 const modalItemsBody = document.getElementById('modalItemsBody');
 const modalSubtotal = document.getElementById('modalSubtotal');
 const modalTax = document.getElementById('modalTax');
@@ -207,117 +60,244 @@ const printBtn = document.getElementById('printBtn');
 const downloadBtn = document.getElementById('downloadBtn');
 const closeModalBtn = document.getElementById('closeModalBtn');
 
-// Auth functions
-registerBtn.onclick = async () => {
-  try{
-    const userCredential = await auth.createUserWithEmailAndPassword(authEmail.value, authPassword.value);
-    authMsg.style.color = 'green'; authMsg.textContent='Registered!';
-  }catch(err){ authMsg.style.color='red'; authMsg.textContent=err.message; }
-}
-loginBtn.onclick = async () => {
-  try{
-    await auth.signInWithEmailAndPassword(authEmail.value, authPassword.value);
-    authMsg.style.color = 'green'; authMsg.textContent='Logged in!';
-  }catch(err){ authMsg.style.color='red'; authMsg.textContent=err.message; }
-}
-
-// Auth state listener
-auth.onAuthStateChanged(user=>{
-  if(user){
-    billingPane.style.display='block';
-    document.getElementById('authPane').style.display='none';
-    loadUserInvoices(user.uid);
-  }else{
-    billingPane.style.display='none';
-    document.getElementById('authPane').style.display='block';
+// --- Auth ---
+registerBtn.addEventListener('click', async () => {
+  try {
+    await createUserWithEmailAndPassword(auth, authEmail.value, authPassword.value);
+    authMsg.style.color = 'green';
+    authMsg.textContent = 'Registered! Logging in...';
+  } catch(err){
+    authMsg.style.color = 'red';
+    authMsg.textContent = err.message;
   }
 });
 
-// Items management
+loginBtn.addEventListener('click', async () => {
+  try{
+    await signInWithEmailAndPassword(auth, authEmail.value, authPassword.value);
+    authMsg.style.color = 'green';
+    authMsg.textContent = 'Logged in!';
+  } catch(err){
+    authMsg.style.color = 'red';
+    authMsg.textContent = err.message;
+  }
+});
+
+onAuthStateChanged(auth, user => {
+  if(user){
+    billingPane.style.display='block';
+    authPane.style.display='none';
+    loadUserInvoices(user.uid);
+  } else {
+    billingPane.style.display='none';
+    authPane.style.display='block';
+  }
+});
+
+// --- Item Management ---
 function addItem(desc='', qty=1, price=0){
   const row=document.createElement('div'); row.className='item-row';
   row.innerHTML=`<input class="desc" placeholder="Description" value="${desc}">
-  <input class="qty" type="number" min="1" value="${qty}">
-  <input class="price" type="number" min="0" step="0.01" value="${price}">
-  <button class="remove">✕</button>`;
+    <input class="qty" type="number" min="1" value="${qty}">
+    <input class="price" type="number" min="0" step="0.01" value="${price}">
+    <button class="remove">✕</button>`;
   row.querySelector('.remove').onclick=()=>row.remove();
   itemsContainer.appendChild(row);
 }
 clearItemsBtn.onclick=()=>{ itemsContainer.innerHTML=''; addItem(); }
 addItemBtn.onclick=()=>addItem();
+addItem(); // initial row
 
-// Generate invoice
-generateBtn.onclick=async ()=>{
-  const user = auth.currentUser; if(!user){alert('Login first'); return;}
-  const items=Array.from(itemsContainer.querySelectorAll('.item-row')).map(r=>{
-    return {desc:r.querySelector('.desc').value, qty:parseFloat(r.querySelector('.qty').value), price:parseFloat(r.querySelector('.price').value)};
-  }).filter(i=>i.desc && i.qty>0);
+// --- Generate Invoice ---
+generateBtn.onclick = async () => {
+  const user = auth.currentUser; if(!user){ alert('Login first'); return; }
+  const items = Array.from(itemsContainer.querySelectorAll('.item-row')).map(r=>({
+    desc: r.querySelector('.desc').value,
+    qty: parseFloat(r.querySelector('.qty').value),
+    price: parseFloat(r.querySelector('.price').value)
+  })).filter(i=>i.desc && i.qty>0);
   if(items.length===0){ alert('Add items'); return; }
-  const subtotal=items.reduce((a,b)=>a+b.qty*b.price,0);
-  const taxPct=parseFloat(taxInput.value)||0;
-  const taxAmount=subtotal*taxPct/100;
-  const total=subtotal+taxAmount;
-  const invId='INV-'+Date.now();
-  await db.collection('invoices').doc(invId).set({
-    userId:user.uid, clientName:clientName.value, clientEmail:clientEmail.value, clientPhone:clientPhone.value, dueDate:dueDate.value,
-    items, subtotal, taxPct, taxAmount, total, currency:currencySelect.value, date:(new Date()).toISOString().split('T')[0]
+  const subtotal = items.reduce((a,b)=>a+b.qty*b.price,0);
+  const taxPct = parseFloat(taxInput.value)||0;
+  const taxAmount = subtotal*taxPct/100;
+  const total = subtotal+taxAmount;
+  const invId = 'INV-'+Date.now();
+
+  await setDoc(doc(db,'invoices',invId),{
+    userId: user.uid,
+    clientName: clientName.value,
+    clientEmail: clientEmail.value,
+    clientPhone: clientPhone.value,
+    dueDate: dueDate.value,
+    items,
+    subtotal,
+    taxPct,
+    taxAmount,
+    total,
+    currency: currencySelect.value,
+    date: (new Date()).toISOString().split('T')[0]
   });
-  addItem(); clearItemsBtn.click();
+
+  itemsContainer.innerHTML=''; addItem();
   loadUserInvoices(user.uid);
 }
 
-// Load user invoices
+// --- Load invoices ---
 async function loadUserInvoices(uid){
-  const snapshot=await db.collection('invoices').where('userId','==',uid).orderBy('date','desc').get();
+  const q = query(collection(db,'invoices'), where('userId','==',uid), orderBy('date','desc'));
+  const snapshot = await getDocs(q);
   recordsBody.innerHTML='';
-  snapshot.forEach(doc=>{
-    const inv = doc.data(); const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${doc.id}</td><td>${inv.clientName}</td><td>${inv.date}</td><td style="text-align:right">${inv.currency} ${inv.total.toFixed(2)}</td>
-    <td><button onclick="viewInvoice('${doc.id}')">View</button> <button onclick="deleteInvoice('${doc.id}')">Delete</button></td>`;
+  snapshot.forEach(docItem=>{
+    const inv = docItem.data();
+    const tr = document.createElement('tr');
+    tr.innerHTML=`<td>${docItem.id}</td><td>${inv.clientName}</td><td>${inv.date}</td><td style="text-align:right">${inv.currency} ${inv.total.toFixed(2)}</td>
+      <td>
+        <button onclick="viewInvoice('${docItem.id}')">View</button>
+        <button onclick="deleteInvoice('${docItem.id}')">Delete</button>
+      </td>`;
     recordsBody.appendChild(tr);
   });
 }
 
-// View & Modal
-window.viewInvoice=async (id)=>{
-  const doc = await db.collection('invoices').doc(id).get();
-  if(!doc.exists){ alert('Invoice not found'); return;}
-  const inv=doc.data();
-  modalBackdrop.style.display='flex';
-  modalInv.textContent=id;
-  modalDate.textContent=inv.date;
-  modalBillTo.textContent=inv.clientName;
+// --- View Modal ---
+window.viewInvoice = async (id) => {
+  const docRef = doc(db,'invoices',id);
+  const docSnap = await getDoc(docRef);
+  if(!docSnap.exists()){ alert('Invoice not found'); return; }
+  const inv = docSnap.data();
+  modalInvId.textContent = id;
+  modalClient.textContent = inv.clientName;
+  modalDate.textContent = inv.date;
+
   modalItemsBody.innerHTML='';
   inv.items.forEach(it=>{
-    const r=document.createElement('tr');
+    const r = document.createElement('tr');
     r.innerHTML=`<td>${it.desc}</td><td>${it.qty}</td><td>${inv.currency} ${it.price.toFixed(2)}</td><td>${inv.currency} ${(it.qty*it.price).toFixed(2)}</td>`;
     modalItemsBody.appendChild(r);
   });
-  modalSubtotal.textContent=`Subtotal: ${inv.currency} ${inv.subtotal.toFixed(2)}`;
-  modalTax.textContent=`Tax: ${inv.currency} ${inv.taxAmount.toFixed(2)}`;
-  modalTotal.textContent=`Total: ${inv.currency} ${inv.total.toFixed(2)}`;
+
+  modalSubtotal.textContent = inv.currency+' '+inv.subtotal.toFixed(2);
+  modalTax.textContent = inv.currency+' '+inv.taxAmount.toFixed(2);
+  modalTotal.textContent = inv.currency+' '+inv.total.toFixed(2);
+
+  modalBackdrop.style.display='flex';
 }
 
-window.deleteInvoice=async (id)=>{
-  if(confirm('Delete invoice '+id+'?')){ await db.collection('invoices').doc(id).delete(); loadUserInvoices(auth.currentUser.uid);}
+// --- Delete Invoice ---
+window.deleteInvoice = async (id) => {
+  if(confirm('Delete invoice '+id+'?')){
+    await deleteDoc(doc(db,'invoices',id));
+    loadUserInvoices(auth.currentUser.uid);
+    if(modalBackdrop.style.display==='flex' && modalInvId.textContent===id){
+      modalBackdrop.style.display='none';
+    }
+  }
 }
 
-closeModalBtn.onclick=()=>{modalBackdrop.style.display='none';}
-
-// PDF
-downloadBtn.onclick=async ()=>{
-  const id=modalInv.textContent;
-  const doc = await db.collection('invoices').doc(id).get();
-  if(!doc.exists){ alert('Invoice not found'); return;}
-  const inv = doc.data();
-  const wrapper = document.createElement('div'); wrapper.style.position='fixed'; wrapper.style.left='-10000px';
-  wrapper.innerHTML=`<h2>${inv.clientName}</h2>`; document.body.appendChild(wrapper);
-  await html2pdf().from(wrapper).set({filename:id+'.pdf', jsPDF:{unit:'mm',format:'a4'}}).save();
-  wrapper.remove();
+// --- Modal Print / Download PDF ---
+printBtn.onclick = () => {
+  const element = document.getElementById('modalContent');
+  html2pdf().from(element).set({margin:10,jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).toPdf().get('pdf').then(pdf=>{pdf.autoPrint(); window.open(pdf.output('bloburl'),'_blank');});
 }
 
-// Print
-printBtn.onclick=()=>{ window.print(); }
+downloadBtn.onclick = () => {
+  const element = document.getElementById('modalContent');
+  html2pdf().from(element).set({margin:10,filename:'invoice-'+modalInvId.textContent+'.pdf',jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).save();
+}
+
+closeModalBtn.onclick = () => { modalBackdrop.style.display='none'; }
+
 </script>
+
+<style>
+body{font-family:Inter,sans-serif;margin:24px;background:#f4f7fb;color:#0f172a;}
+.card{background:#fff;padding:18px;margin-bottom:16px;border-radius:12px;box-shadow:0 8px 24px rgba(15,23,42,0.04);}
+input, select{width:100%;padding:10px;margin-top:6px;border-radius:10px;border:1px solid #e6e9ef;}
+button{padding:10px 14px;border:none;border-radius:10px;cursor:pointer;background:#3b82f6;color:#fff;margin-top:6px;}
+button.ghost{background:transparent;border:1px solid #e6e9ef;color:#3b82f6;}
+.row{display:flex;gap:10px;align-items:center;margin-top:10px;}
+.item-row{display:flex;gap:8px;margin-top:8px;align-items:center;}
+.desc{flex:1;} .qty{width:80px;} .price{width:110px;} .remove{background:transparent;color:#ef4444;font-size:20px;border:none;cursor:pointer;}
+table{width:100%;border-collapse:collapse;margin-top:12px;}
+th,td{padding:10px;border-bottom:1px solid #f0f2f5;text-align:left;font-size:14px;}
+
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:1000;padding:20px;}
+.modal{background:#fff;border-radius:12px;padding:18px;width:100%;max-width:600px;max-height:90vh;overflow:auto;}
+.modal table{width:100%;border-collapse:collapse;margin-top:12px;}
+.modal th, .modal td{border:1px solid #ddd;padding:8px;text-align:left;}
+.modal-header{display:flex;justify-content:space-between;align-items:center;}
+</style>
+</head>
+<body>
+
+<div class="card" id="authPane">
+  <h3>Register / Login</h3>
+  <input id="authEmail" type="email" placeholder="Email">
+  <input id="authPassword" type="password" placeholder="Password">
+  <div class="row">
+    <button id="registerBtn">Register</button>
+    <button id="loginBtn" class="ghost">Login</button>
+  </div>
+  <div id="authMsg" style="margin-top:6px;"></div>
+</div>
+
+<div id="billingPane" style="display:none;">
+  <div class="card">
+    <h3>Client Info</h3>
+    <input id="clientName" placeholder="Client Name">
+    <input id="clientEmail" placeholder="Client Email">
+    <input id="clientPhone" placeholder="Client Phone">
+    <input id="dueDate" type="date">
+  </div>
+  <div class="card">
+    <h3>Items</h3>
+    <div id="itemsContainer"></div>
+    <div class="row">
+      <button id="addItemBtn">+ Add Item</button>
+      <button id="clearItemsBtn" class="ghost">Clear</button>
+    </div>
+  </div>
+  <div class="card">
+    <input id="taxInput" type="number" placeholder="Tax %">
+    <select id="currencySelect">
+      <option value="₹">INR</option>
+      <option value="$">USD</option>
+    </select>
+    <button id="generateBtn">Generate & Save Invoice</button>
+  </div>
+  <div class="card">
+    <h3>Invoice Records</h3>
+    <table>
+      <thead><tr><th>ID</th><th>Client</th><th>Date</th><th>Total</th><th></th></tr></thead>
+      <tbody id="recordsBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" id="modalContent">
+    <div class="modal-header">
+      <div><strong>Invoice:</strong> <span id="modalInvId"></span><br>
+        <strong>Client:</strong> <span id="modalClient"></span><br>
+        <strong>Date:</strong> <span id="modalDate"></span>
+      </div>
+      <div>
+        <button id="printBtn">Print</button>
+        <button id="downloadBtn">Download PDF</button>
+        <button id="closeModalBtn" class="ghost">Close</button>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>Description</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead>
+      <tbody id="modalItemsBody"></tbody>
+    </table>
+    <div style="margin-top:12px;text-align:right;">
+      Subtotal: <span id="modalSubtotal"></span><br>
+      Tax: <span id="modalTax"></span><br>
+      <strong>Total: <span id="modalTotal"></span></strong>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
