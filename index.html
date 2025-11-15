@@ -3,15 +3,141 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Easy Billing — Firebase + PDF</title>
+<title>Modern Easy Billing</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.24.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.24.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.24.0/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+<style>
+:root{
+  --bg:#f4f7fb; --card:#fff; --accent:#3b82f6; --accent2:#7c3aed; --danger:#ef4444; --muted:#6b7280; --radius:12px;
+}
+*{box-sizing:border-box;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;}
+body{margin:0;background:var(--bg);padding:20px;color:#0f172a;}
+.wrap{max-width:1100px;margin:0 auto;}
+.card{background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:0 4px 18px rgba(0,0,0,0.06);}
+input,textarea,select{width:100%;padding:10px;border-radius:10px;border:1px solid #e6e9ef;margin-top:6px;margin-bottom:12px;}
+button{cursor:pointer;border:none;border-radius:10px;padding:10px 14px;font-weight:600;}
+button.primary{background:var(--accent);color:#fff;}
+button.ghost{background:transparent;border:1px solid #e6e9ef;color:var(--accent);}
+button.warn{background:var(--danger);color:#fff;}
+.tabs{display:flex;gap:10px;margin-bottom:20px;}
+.tab{padding:10px 16px;border-radius:10px;cursor:pointer;background:#f0f2f5;color:var(--muted);}
+.tab.active{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff;}
+.grid{display:grid;grid-template-columns:1fr 360px;gap:20px;}
+@media(max-width:900px){.grid{grid-template-columns:1fr;}}
+.table{width:100%;border-collapse:collapse;margin-top:12px;}
+.table th,.table td{padding:10px;border-bottom:1px solid #f0f2f5;text-align:left;}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:1200;}
+.modal{background:#fff;border-radius:12px;padding:18px;max-height:90vh;overflow:auto;width:100%;max-width:800px;}
+.item-row{display:flex;gap:10px;align-items:center;margin-bottom:6px;}
+.item-row input{flex:1;padding:8px;border:1px solid #e6e9ef;border-radius:8px;}
+.item-row .qty{width:80px;}
+.item-row .price{width:120px;}
+.item-row .remove{color:var(--danger);font-size:18px;background:transparent;border:none;cursor:pointer;}
+.summary{padding:14px;border-radius:10px;background:#fdfdfd;box-shadow:0 6px 18px rgba(0,0,0,0.04);}
+</style>
+</head>
+<body>
+<div class="wrap">
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js";
-import { getFirestore, collection, doc, setDoc, getDocs, query, where, orderBy, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore.js";
+<h1>Modern Easy Billing</h1>
 
+<div id="authSection" class="card">
+  <h3>Login / Register</h3>
+  <input type="email" id="email" placeholder="Email">
+  <input type="password" id="password" placeholder="Password">
+  <button id="loginBtn" class="primary">Login</button>
+  <button id="registerBtn" class="ghost">Register</button>
+  <button id="logoutBtn" class="warn" style="display:none;margin-top:10px;">Logout</button>
+  <div id="authMsg" style="margin-top:10px;color:green;"></div>
+</div>
+
+<div id="mainApp" style="display:none;">
+  <div class="tabs">
+    <div class="tab active" id="tabCreateBtn">Create Invoice</div>
+    <div class="tab" id="tabRecordsBtn">Invoice Records</div>
+    <div class="tab" id="tabCompanyBtn">Company Info</div>
+  </div>
+
+  <!-- Company Info -->
+  <div id="paneCompany" style="display:none;">
+    <div class="card">
+      <h3>Company Info</h3>
+      <input type="text" id="companyName" placeholder="Company Name">
+      <textarea id="companyAddress" placeholder="Address"></textarea>
+      <input type="text" id="companyPhone" placeholder="Phone">
+      <input type="text" id="companyGST" placeholder="GST / Tax">
+      <input type="number" id="defaultTax" placeholder="Default Tax %">
+      <button id="saveCompanyBtn" class="primary">Save Company Info</button>
+      <div id="companyMsg" style="color:green;margin-top:6px;"></div>
+    </div>
+  </div>
+
+  <!-- Create Invoice -->
+  <div id="paneCreate">
+    <div class="grid">
+      <div class="card">
+        <h3>Client Info</h3>
+        <input type="text" id="clientName" placeholder="Client Name">
+        <input type="email" id="clientEmail" placeholder="Client Email">
+        <input type="text" id="clientPhone" placeholder="Client Phone">
+        <input type="date" id="dueDate">
+        <h3>Items</h3>
+        <div id="itemsContainer"></div>
+        <button id="addItemBtn" class="ghost">+ Add Item</button>
+        <input type="number" id="taxInput" placeholder="Tax %" style="margin-top:10px;">
+        <select id="currencySelect">
+          <option value="₹">INR (₹)</option>
+          <option value="$">USD ($)</option>
+          <option value="€">EUR (€)</option>
+        </select>
+        <button id="generateBtn" class="primary" style="margin-top:10px;">Generate Invoice</button>
+      </div>
+      <div class="summary card">
+        <h3>Summary</h3>
+        <p>Total invoices: <span id="totalCount">0</span></p>
+        <p>Last invoice: <span id="lastInv">—</span></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Invoice Records -->
+  <div id="paneRecords" style="display:none;">
+    <div class="card">
+      <h3>Invoice Records</h3>
+      <input type="text" id="searchInput" placeholder="Search by client or ID">
+      <table class="table">
+        <thead><tr><th>ID</th><th>Client</th><th>Date</th><th>Total</th><th>Actions</th></tr></thead>
+        <tbody id="recordsBody"></tbody>
+      </table>
+      <button id="deleteAllBtn" class="warn" style="margin-top:10px;">Delete All</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;">
+      <div>
+        <h3 id="modalInv">Invoice #</h3>
+        <p id="modalDate"></p>
+      </div>
+      <div>
+        <button id="printBtn" class="primary">Print</button>
+        <button id="downloadBtn" class="ghost">Download PDF</button>
+        <button id="closeModalBtn" class="warn">Close</button>
+      </div>
+    </div>
+    <hr>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<script>
+// ---------------- Firebase Setup ----------------
 const firebaseConfig = {
   apiKey: "AIzaSyALJEa8u1PdLwmOjbtfWWpBRwdNwAIvKAU",
   authDomain: "billing-database-18013.firebaseapp.com",
@@ -21,283 +147,206 @@ const firebaseConfig = {
   messagingSenderId: "108079794708",
   appId: "1:108079794708:web:3cc0c8654b1520e835b501"
 };
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-// DOM elements
-const authPane = document.getElementById('authPane');
-const billingPane = document.getElementById('billingPane');
-const authEmail = document.getElementById('authEmail');
-const authPassword = document.getElementById('authPassword');
-const registerBtn = document.getElementById('registerBtn');
+// ----------------- Auth -----------------
+const emailInput = document.getElementById('email');
+const passInput = document.getElementById('password');
 const loginBtn = document.getElementById('loginBtn');
+const registerBtn = document.getElementById('registerBtn');
+const logoutBtn = document.getElementById('logoutBtn');
 const authMsg = document.getElementById('authMsg');
+const mainApp = document.getElementById('mainApp');
 
-const clientName = document.getElementById('clientName');
-const clientEmail = document.getElementById('clientEmail');
-const clientPhone = document.getElementById('clientPhone');
-const dueDate = document.getElementById('dueDate');
-const addItemBtn = document.getElementById('addItemBtn');
-const clearItemsBtn = document.getElementById('clearItemsBtn');
+loginBtn.addEventListener('click', async()=>{ try{ await auth.signInWithEmailAndPassword(emailInput.value,passInput.value);} catch(e){ authMsg.textContent = e.message; } });
+registerBtn.addEventListener('click', async()=>{ try{ await auth.createUserWithEmailAndPassword(emailInput.value,passInput.value);} catch(e){ authMsg.textContent = e.message; } });
+logoutBtn.addEventListener('click', ()=>auth.signOut());
+
+auth.onAuthStateChanged(user=>{
+  if(user){
+    mainApp.style.display='block';
+    logoutBtn.style.display='inline-block';
+    authMsg.textContent='';
+    loadCompanyInfo();
+    loadInvoices();
+  }else{
+    mainApp.style.display='none';
+    logoutBtn.style.display='none';
+  }
+});
+
+// ----------------- Tabs -----------------
+const tabCreateBtn = document.getElementById('tabCreateBtn');
+const tabRecordsBtn = document.getElementById('tabRecordsBtn');
+const tabCompanyBtn = document.getElementById('tabCompanyBtn');
+const paneCreate = document.getElementById('paneCreate');
+const paneRecords = document.getElementById('paneRecords');
+const paneCompany = document.getElementById('paneCompany');
+function showPane(pane){
+  paneCreate.style.display='none'; paneRecords.style.display='none'; paneCompany.style.display='none';
+  tabCreateBtn.classList.remove('active'); tabRecordsBtn.classList.remove('active'); tabCompanyBtn.classList.remove('active');
+  if(pane==='create'){ paneCreate.style.display='block'; tabCreateBtn.classList.add('active');}
+  if(pane==='records'){ paneRecords.style.display='block'; tabRecordsBtn.classList.add('active');}
+  if(pane==='company'){ paneCompany.style.display='block'; tabCompanyBtn.classList.add('active');}
+}
+tabCreateBtn.onclick=()=>showPane('create');
+tabRecordsBtn.onclick=()=>showPane('records');
+tabCompanyBtn.onclick=()=>showPane('company');
+
+// ----------------- Company -----------------
+const companyName = document.getElementById('companyName');
+const companyAddress = document.getElementById('companyAddress');
+const companyPhone = document.getElementById('companyPhone');
+const companyGST = document.getElementById('companyGST');
+const defaultTax = document.getElementById('defaultTax');
+const saveCompanyBtn = document.getElementById('saveCompanyBtn');
+const companyMsg = document.getElementById('companyMsg');
+saveCompanyBtn.onclick = async()=>{
+  const userId = auth.currentUser.uid;
+  await db.collection('companies').doc(userId).set({
+    name:companyName.value,address:companyAddress.value,phone:companyPhone.value,gst:companyGST.value,defaultTax:parseFloat(defaultTax.value)
+  });
+  companyMsg.textContent='Saved';
+  setTimeout(()=>companyMsg.textContent='',1500);
+}
+async function loadCompanyInfo(){
+  const userId = auth.currentUser.uid;
+  const doc = await db.collection('companies').doc(userId).get();
+  if(doc.exists){
+    const data = doc.data();
+    companyName.value=data.name||'';
+    companyAddress.value=data.address||'';
+    companyPhone.value=data.phone||'';
+    companyGST.value=data.gst||'';
+    defaultTax.value=data.defaultTax||10;
+    taxInput.value=data.defaultTax||10;
+  }
+}
+
+// ----------------- Invoice -----------------
 const itemsContainer = document.getElementById('itemsContainer');
+const addItemBtn = document.getElementById('addItemBtn');
 const taxInput = document.getElementById('taxInput');
 const currencySelect = document.getElementById('currencySelect');
+const clientNameInput = document.getElementById('clientName');
+const clientEmailInput = document.getElementById('clientEmail');
+const clientPhoneInput = document.getElementById('clientPhone');
+const dueDateInput = document.getElementById('dueDate');
 const generateBtn = document.getElementById('generateBtn');
+const totalCount = document.getElementById('totalCount');
+const lastInv = document.getElementById('lastInv');
 const recordsBody = document.getElementById('recordsBody');
-
-// Modal elements
+const searchInput = document.getElementById('searchInput');
+const deleteAllBtn = document.getElementById('deleteAllBtn');
 const modalBackdrop = document.getElementById('modalBackdrop');
-const modalInvId = document.getElementById('modalInvId');
-const modalClient = document.getElementById('modalClient');
+const modalInv = document.getElementById('modalInv');
 const modalDate = document.getElementById('modalDate');
-const modalItemsBody = document.getElementById('modalItemsBody');
-const modalSubtotal = document.getElementById('modalSubtotal');
-const modalTax = document.getElementById('modalTax');
-const modalTotal = document.getElementById('modalTotal');
+const modalContent = document.getElementById('modalContent');
 const printBtn = document.getElementById('printBtn');
 const downloadBtn = document.getElementById('downloadBtn');
 const closeModalBtn = document.getElementById('closeModalBtn');
 
-// --- Auth ---
-registerBtn.addEventListener('click', async () => {
-  try {
-    await createUserWithEmailAndPassword(auth, authEmail.value, authPassword.value);
-    authMsg.style.color = 'green';
-    authMsg.textContent = 'Registered! Logging in...';
-  } catch(err){
-    authMsg.style.color = 'red';
-    authMsg.textContent = err.message;
-  }
-});
-
-loginBtn.addEventListener('click', async () => {
-  try{
-    await signInWithEmailAndPassword(auth, authEmail.value, authPassword.value);
-    authMsg.style.color = 'green';
-    authMsg.textContent = 'Logged in!';
-  } catch(err){
-    authMsg.style.color = 'red';
-    authMsg.textContent = err.message;
-  }
-});
-
-onAuthStateChanged(auth, user => {
-  if(user){
-    billingPane.style.display='block';
-    authPane.style.display='none';
-    loadUserInvoices(user.uid);
-  } else {
-    billingPane.style.display='none';
-    authPane.style.display='block';
-  }
-});
-
-// --- Item Management ---
-function addItem(desc='', qty=1, price=0){
-  const row=document.createElement('div'); row.className='item-row';
-  row.innerHTML=`<input class="desc" placeholder="Description" value="${desc}">
-    <input class="qty" type="number" min="1" value="${qty}">
-    <input class="price" type="number" min="0" step="0.01" value="${price}">
-    <button class="remove">✕</button>`;
-  row.querySelector('.remove').onclick=()=>row.remove();
-  itemsContainer.appendChild(row);
+function addItem(desc='',qty=1,price=0){
+  const div=document.createElement('div'); div.className='item-row';
+  div.innerHTML=`<input class="desc" placeholder="Description" value="${desc}"><input class="qty" type="number" min="1" value="${qty}"><input class="price" type="number" min="0" step="0.01" value="${price}"><button class="remove">✕</button>`;
+  div.querySelector('.remove').onclick=()=>div.remove();
+  itemsContainer.appendChild(div);
 }
-clearItemsBtn.onclick=()=>{ itemsContainer.innerHTML=''; addItem(); }
+addItem();
 addItemBtn.onclick=()=>addItem();
-addItem(); // initial row
 
-// --- Generate Invoice ---
-generateBtn.onclick = async () => {
-  const user = auth.currentUser; if(!user){ alert('Login first'); return; }
-  const items = Array.from(itemsContainer.querySelectorAll('.item-row')).map(r=>({
-    desc: r.querySelector('.desc').value,
-    qty: parseFloat(r.querySelector('.qty').value),
-    price: parseFloat(r.querySelector('.price').value)
-  })).filter(i=>i.desc && i.qty>0);
+// ---------------- Auto-increment Invoice ID -----------------
+async function getNextInvoiceNumber(userId){
+  const counterRef = db.collection('counters').doc(userId);
+  let nextNum = 1;
+  await db.runTransaction(async(t)=>{
+    const doc = await t.get(counterRef);
+    if(doc.exists) nextNum = doc.data().next+1;
+    t.set(counterRef,{next:nextNum},{merge:true});
+  });
+  return 'INV-'+String(nextNum).padStart(5,'0');
+}
+
+generateBtn.onclick=async()=>{
+  if(!clientNameInput.value){ alert('Enter client'); return; }
+  const rows=[...itemsContainer.querySelectorAll('.item-row')];
+  const items=[]; let subtotal=0;
+  rows.forEach(r=>{
+    const d=r.querySelector('.desc').value;
+    const q=parseFloat(r.querySelector('.qty').value||0);
+    const p=parseFloat(r.querySelector('.price').value||0);
+    if(d&&q>0){ items.push({desc:d,qty:q,price:p,total:q*p}); subtotal+=q*p; }
+  });
   if(items.length===0){ alert('Add items'); return; }
-  const subtotal = items.reduce((a,b)=>a+b.qty*b.price,0);
-  const taxPct = parseFloat(taxInput.value)||0;
-  const taxAmount = subtotal*taxPct/100;
-  const total = subtotal+taxAmount;
-  const invId = 'INV-'+Date.now();
-
-  await setDoc(doc(db,'invoices',invId),{
-    userId: user.uid,
-    clientName: clientName.value,
-    clientEmail: clientEmail.value,
-    clientPhone: clientPhone.value,
-    dueDate: dueDate.value,
-    items,
-    subtotal,
-    taxPct,
-    taxAmount,
-    total,
-    currency: currencySelect.value,
-    date: (new Date()).toISOString().split('T')[0]
-  });
-
+  const tax=parseFloat(taxInput.value||0);
+  const total=subtotal*(1+tax/100);
+  const userId = auth.currentUser.uid;
+  const invoiceId = await getNextInvoiceNumber(userId);
+  const invoice={id:invoiceId,client:clientNameInput.value,clientEmail:clientEmailInput.value,clientPhone:clientPhoneInput.value,items,subtotal,taxPct:tax,total,currency:currencySelect.value,date:new Date().toISOString().split('T')[0],dueDate:dueDateInput.value};
+  await db.collection('invoices').doc(invoice.id).set({...invoice,userId});
+  clientNameInput.value=''; clientEmailInput.value=''; clientPhoneInput.value=''; dueDateInput.value='';
   itemsContainer.innerHTML=''; addItem();
-  loadUserInvoices(user.uid);
 }
 
-// --- Load invoices ---
-async function loadUserInvoices(uid){
-  const q = query(collection(db,'invoices'), where('userId','==',uid), orderBy('date','desc'));
-  const snapshot = await getDocs(q);
-  recordsBody.innerHTML='';
-  snapshot.forEach(docItem=>{
-    const inv = docItem.data();
-    const tr = document.createElement('tr');
-    tr.innerHTML=`<td>${docItem.id}</td><td>${inv.clientName}</td><td>${inv.date}</td><td style="text-align:right">${inv.currency} ${inv.total.toFixed(2)}</td>
+// ---------------- Real-time invoices -----------------
+function loadInvoices(){
+  const q=db.collection('invoices').where('userId','==',auth.currentUser.uid).orderBy('date','desc');
+  q.onSnapshot(snapshot=>{
+    recordsBody.innerHTML=''; totalCount.textContent=snapshot.size; lastInv.textContent=snapshot.size?snapshot.docs[0].data().id:'—';
+    snapshot.docs.forEach(doc=>{
+      const inv=doc.data();
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${inv.id}</td><td>${inv.client}</td><td>${inv.date}</td><td>${inv.currency} ${inv.total.toFixed(2)}</td>
       <td>
-        <button onclick="viewInvoice('${docItem.id}')">View</button>
-        <button onclick="deleteInvoice('${docItem.id}')">Delete</button>
+        <button class="viewBtn" data-id="${inv.id}">View</button>
+        <button class="delBtn" data-id="${inv.id}">Delete</button>
       </td>`;
-    recordsBody.appendChild(tr);
+      recordsBody.appendChild(tr);
+    });
+    document.querySelectorAll('.viewBtn').forEach(btn=>btn.onclick=()=>openModal(btn.dataset.id));
+    document.querySelectorAll('.delBtn').forEach(btn=>btn.onclick=async()=>{
+      if(confirm('Delete invoice '+btn.dataset.id+'?')){
+        await db.collection('invoices').doc(btn.dataset.id).delete();
+      }
+    });
   });
 }
 
-// --- View Modal ---
-window.viewInvoice = async (id) => {
-  const docRef = doc(db,'invoices',id);
-  const docSnap = await getDoc(docRef);
-  if(!docSnap.exists()){ alert('Invoice not found'); return; }
-  const inv = docSnap.data();
-  modalInvId.textContent = id;
-  modalClient.textContent = inv.clientName;
-  modalDate.textContent = inv.date;
-
-  modalItemsBody.innerHTML='';
-  inv.items.forEach(it=>{
-    const r = document.createElement('tr');
-    r.innerHTML=`<td>${it.desc}</td><td>${it.qty}</td><td>${inv.currency} ${it.price.toFixed(2)}</td><td>${inv.currency} ${(it.qty*it.price).toFixed(2)}</td>`;
-    modalItemsBody.appendChild(r);
+// ---------------- Modal -----------------
+function openModal(id){
+  db.collection('invoices').doc(id).get().then(doc=>{
+    if(!doc.exists) return;
+    const inv=doc.data();
+    modalInv.textContent=inv.id;
+    modalDate.textContent=inv.date;
+    let html=`<h4>Client: ${inv.client}</h4>`;
+    html+=`<p>Email: ${inv.clientEmail||''} <br> Phone: ${inv.clientPhone||''}</p>`;
+    html+=`<table style="width:100%;border-collapse:collapse;"><tr><th>Description</th><th>Qty</th><th>Price</th><th>Total</th></tr>`;
+    inv.items.forEach(it=>{ html+=`<tr><td>${it.desc}</td><td>${it.qty}</td><td>${inv.currency} ${it.price.toFixed(2)}</td><td>${inv.currency} ${it.total.toFixed(2)}</td></tr>`; });
+    html+=`</table><p>Subtotal: ${inv.currency} ${inv.subtotal.toFixed(2)}<br>Tax: ${inv.taxPct}%<br>Total: ${inv.currency} ${inv.total.toFixed(2)}</p>`;
+    modalContent.innerHTML=html;
+    modalBackdrop.style.display='flex';
   });
-
-  modalSubtotal.textContent = inv.currency+' '+inv.subtotal.toFixed(2);
-  modalTax.textContent = inv.currency+' '+inv.taxAmount.toFixed(2);
-  modalTotal.textContent = inv.currency+' '+inv.total.toFixed(2);
-
-  modalBackdrop.style.display='flex';
 }
+closeModalBtn.onclick=()=>modalBackdrop.style.display='none';
+printBtn.onclick=()=>{ const w=window.open(''); w.document.write(modalContent.innerHTML); w.print(); w.close();}
+downloadBtn.onclick=()=>{ html2pdf().from(modalContent).save(modalInv.textContent+'.pdf'); }
 
-// --- Delete Invoice ---
-window.deleteInvoice = async (id) => {
-  if(confirm('Delete invoice '+id+'?')){
-    await deleteDoc(doc(db,'invoices',id));
-    loadUserInvoices(auth.currentUser.uid);
-    if(modalBackdrop.style.display==='flex' && modalInvId.textContent===id){
-      modalBackdrop.style.display='none';
-    }
+// ---------------- Delete All -----------------
+deleteAllBtn.onclick=async()=>{
+  if(confirm('Delete all invoices?')){
+    const snapshot=await db.collection('invoices').where('userId','==',auth.currentUser.uid).get();
+    snapshot.docs.forEach(doc=>doc.ref.delete());
   }
 }
 
-// --- Modal Print / Download PDF ---
-printBtn.onclick = () => {
-  const element = document.getElementById('modalContent');
-  html2pdf().from(element).set({margin:10,jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).toPdf().get('pdf').then(pdf=>{pdf.autoPrint(); window.open(pdf.output('bloburl'),'_blank');});
-}
-
-downloadBtn.onclick = () => {
-  const element = document.getElementById('modalContent');
-  html2pdf().from(element).set({margin:10,filename:'invoice-'+modalInvId.textContent+'.pdf',jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).save();
-}
-
-closeModalBtn.onclick = () => { modalBackdrop.style.display='none'; }
+// ---------------- Search -----------------
+searchInput.oninput=()=>{ const filter=searchInput.value.toLowerCase(); document.querySelectorAll('#recordsBody tr').forEach(tr=>{
+  tr.style.display=(tr.cells[0].textContent.toLowerCase().includes(filter)||tr.cells[1].textContent.toLowerCase().includes(filter))?'':'none';
+}); }
 
 </script>
-
-<style>
-body{font-family:Inter,sans-serif;margin:24px;background:#f4f7fb;color:#0f172a;}
-.card{background:#fff;padding:18px;margin-bottom:16px;border-radius:12px;box-shadow:0 8px 24px rgba(15,23,42,0.04);}
-input, select{width:100%;padding:10px;margin-top:6px;border-radius:10px;border:1px solid #e6e9ef;}
-button{padding:10px 14px;border:none;border-radius:10px;cursor:pointer;background:#3b82f6;color:#fff;margin-top:6px;}
-button.ghost{background:transparent;border:1px solid #e6e9ef;color:#3b82f6;}
-.row{display:flex;gap:10px;align-items:center;margin-top:10px;}
-.item-row{display:flex;gap:8px;margin-top:8px;align-items:center;}
-.desc{flex:1;} .qty{width:80px;} .price{width:110px;} .remove{background:transparent;color:#ef4444;font-size:20px;border:none;cursor:pointer;}
-table{width:100%;border-collapse:collapse;margin-top:12px;}
-th,td{padding:10px;border-bottom:1px solid #f0f2f5;text-align:left;font-size:14px;}
-
-.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:1000;padding:20px;}
-.modal{background:#fff;border-radius:12px;padding:18px;width:100%;max-width:600px;max-height:90vh;overflow:auto;}
-.modal table{width:100%;border-collapse:collapse;margin-top:12px;}
-.modal th, .modal td{border:1px solid #ddd;padding:8px;text-align:left;}
-.modal-header{display:flex;justify-content:space-between;align-items:center;}
-</style>
-</head>
-<body>
-
-<div class="card" id="authPane">
-  <h3>Register / Login</h3>
-  <input id="authEmail" type="email" placeholder="Email">
-  <input id="authPassword" type="password" placeholder="Password">
-  <div class="row">
-    <button id="registerBtn">Register</button>
-    <button id="loginBtn" class="ghost">Login</button>
-  </div>
-  <div id="authMsg" style="margin-top:6px;"></div>
-</div>
-
-<div id="billingPane" style="display:none;">
-  <div class="card">
-    <h3>Client Info</h3>
-    <input id="clientName" placeholder="Client Name">
-    <input id="clientEmail" placeholder="Client Email">
-    <input id="clientPhone" placeholder="Client Phone">
-    <input id="dueDate" type="date">
-  </div>
-  <div class="card">
-    <h3>Items</h3>
-    <div id="itemsContainer"></div>
-    <div class="row">
-      <button id="addItemBtn">+ Add Item</button>
-      <button id="clearItemsBtn" class="ghost">Clear</button>
-    </div>
-  </div>
-  <div class="card">
-    <input id="taxInput" type="number" placeholder="Tax %">
-    <select id="currencySelect">
-      <option value="₹">INR</option>
-      <option value="$">USD</option>
-    </select>
-    <button id="generateBtn">Generate & Save Invoice</button>
-  </div>
-  <div class="card">
-    <h3>Invoice Records</h3>
-    <table>
-      <thead><tr><th>ID</th><th>Client</th><th>Date</th><th>Total</th><th></th></tr></thead>
-      <tbody id="recordsBody"></tbody>
-    </table>
-  </div>
-</div>
-
-<div class="modal-backdrop" id="modalBackdrop">
-  <div class="modal" id="modalContent">
-    <div class="modal-header">
-      <div><strong>Invoice:</strong> <span id="modalInvId"></span><br>
-        <strong>Client:</strong> <span id="modalClient"></span><br>
-        <strong>Date:</strong> <span id="modalDate"></span>
-      </div>
-      <div>
-        <button id="printBtn">Print</button>
-        <button id="downloadBtn">Download PDF</button>
-        <button id="closeModalBtn" class="ghost">Close</button>
-      </div>
-    </div>
-    <table>
-      <thead><tr><th>Description</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead>
-      <tbody id="modalItemsBody"></tbody>
-    </table>
-    <div style="margin-top:12px;text-align:right;">
-      Subtotal: <span id="modalSubtotal"></span><br>
-      Tax: <span id="modalTax"></span><br>
-      <strong>Total: <span id="modalTotal"></span></strong>
-    </div>
-  </div>
-</div>
-
 </body>
 </html>
