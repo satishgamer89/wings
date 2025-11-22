@@ -189,11 +189,13 @@ document.getElementById("logoutBtn").onclick = () => auth.signOut();
 
 auth.onAuthStateChanged(user => {
   if (user) {
+    authSection.style.display = "none";
     mainApp.style.display = "block";
     logoutBtn.style.display = "inline-block";
     loadCompanyInfo();
     loadInvoices();
   } else {
+    authSection.style.display = "block";
     mainApp.style.display = "none";
     logoutBtn.style.display = "none";
   }
