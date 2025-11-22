@@ -1,19 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1.0" />
-<title>Modern Easy Billing — Fixed</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Modern Easy Billing</title>
+
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-<script src="https://www.gstatic.com/firebasejs/10.24.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.24.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.24.0/firebase-firestore-compat.js"></script>
+
+<!-- Firebase v9 COMPAT (fully works with your old code style) -->
+<script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-firestore-compat.js"></script>
+
+<!-- PDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+
 <style>
 :root{
   --bg:#f4f7fb; --card:#fff; --accent:#3b82f6; --accent2:#7c3aed; --danger:#ef4444; --muted:#6b7280; --radius:12px;
 }
-*{box-sizing:border-box;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;}
+*{box-sizing:border-box;font-family:Inter,system-ui;}
 body{margin:0;background:var(--bg);padding:20px;color:#0f172a;}
 .wrap{max-width:1100px;margin:0 auto;}
 .card{background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:0 4px 18px rgba(0,0,0,0.06);}
@@ -30,49 +36,41 @@ button.warn{background:var(--danger);color:#fff;}
 .table{width:100%;border-collapse:collapse;margin-top:12px;}
 .table th,.table td{padding:10px;border-bottom:1px solid #f0f2f5;text-align:left;}
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:1200;}
-.modal{background:#fff;border-radius:12px;padding:18px;max-height:90vh;overflow:auto;width:100%;max-width:900px;}
+.modal{background:#fff;border-radius:12px;padding:18px;max-height:90vh;overflow:auto;width:100%;max-width:800px;}
 .item-row{display:flex;gap:10px;align-items:center;margin-bottom:6px;}
 .item-row input{flex:1;padding:8px;border:1px solid #e6e9ef;border-radius:8px;}
 .item-row .qty{width:80px;}
 .item-row .price{width:120px;}
 .item-row .remove{color:var(--danger);font-size:18px;background:transparent;border:none;cursor:pointer;}
 .summary{padding:14px;border-radius:10px;background:#fdfdfd;box-shadow:0 6px 18px rgba(0,0,0,0.04);}
-.small-muted{color:var(--muted);font-size:13px;}
-.invoice-head{display:flex;justify-content:space-between;align-items:center;}
-@media(max-width:700px){.invoice-head{flex-direction:column;align-items:flex-start;gap:8px}}
-.printable-invoice{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;color:#0f172a;padding:18px;}
-.printable-invoice table{width:100%;border-collapse:collapse;}
-.printable-invoice th, .printable-invoice td{padding:8px;border-bottom:1px solid #eee;text-align:left;}
 </style>
 </head>
+
 <body>
 <div class="wrap">
 
 <h1>Modern Easy Billing</h1>
 
+<!-- AUTH CARD -->
 <div id="authSection" class="card">
   <h3>Login / Register</h3>
   <input type="email" id="email" placeholder="Email">
   <input type="password" id="password" placeholder="Password">
-  <div style="display:flex;gap:8px;">
-    <button id="loginBtn" class="primary">Login</button>
-    <button id="registerBtn" class="ghost">Register</button>
-    <button id="logoutBtn" class="warn" style="display:none;margin-left:auto;">Logout</button>
-  </div>
+  <button id="loginBtn" class="primary">Login</button>
+  <button id="registerBtn" class="ghost">Register</button>
+  <button id="logoutBtn" class="warn" style="display:none;margin-top:10px;">Logout</button>
   <div id="authMsg" style="margin-top:10px;color:green;"></div>
-  <div class="small-muted" style="margin-top:6px;">
-    Make sure your domain (localhost or your hosting domain) is added to Firebase Console → Authentication → Authorized domains.
-  </div>
 </div>
 
-<div id="mainApp" style="display:none;margin-top:18px;">
+<!-- MAIN APP -->
+<div id="mainApp" style="display:none;">
   <div class="tabs">
     <div class="tab active" id="tabCreateBtn">Create Invoice</div>
     <div class="tab" id="tabRecordsBtn">Invoice Records</div>
     <div class="tab" id="tabCompanyBtn">Company Info</div>
   </div>
 
-  <!-- Company Info -->
+  <!-- COMPANY INFO -->
   <div id="paneCompany" style="display:none;">
     <div class="card">
       <h3>Company Info</h3>
@@ -80,60 +78,41 @@ button.warn{background:var(--danger);color:#fff;}
       <textarea id="companyAddress" placeholder="Address"></textarea>
       <input type="text" id="companyPhone" placeholder="Phone">
       <input type="text" id="companyGST" placeholder="GST / Tax">
-      <input type="number" id="defaultTax" placeholder="Default Tax %" min="0" step="0.01">
-      <div style="display:flex;gap:8px;">
-        <button id="saveCompanyBtn" class="primary">Save Company Info</button>
-        <button id="loadCompanyBtn" class="ghost">Reload</button>
-      </div>
+      <input type="number" id="defaultTax" placeholder="Default Tax %">
+      <button id="saveCompanyBtn" class="primary">Save Company Info</button>
       <div id="companyMsg" style="color:green;margin-top:6px;"></div>
     </div>
   </div>
 
-  <!-- Create Invoice -->
+  <!-- CREATE INVOICE -->
   <div id="paneCreate">
     <div class="grid">
       <div class="card">
-        <div class="invoice-head">
-          <h3>Create Invoice</h3>
-          <div class="small-muted">Currency:
-            <select id="currencySelect" style="display:inline-block;margin-left:6px;padding:6px;border-radius:6px;">
-              <option value="₹">INR (₹)</option>
-              <option value="$">USD ($)</option>
-              <option value="€">EUR (€)</option>
-            </select>
-          </div>
-        </div>
-
-        <h4>Client Info</h4>
+        <h3>Client Info</h3>
         <input type="text" id="clientName" placeholder="Client Name">
         <input type="email" id="clientEmail" placeholder="Client Email">
         <input type="text" id="clientPhone" placeholder="Client Phone">
         <input type="date" id="dueDate">
-
-        <h4>Items</h4>
+        <h3>Items</h3>
         <div id="itemsContainer"></div>
         <button id="addItemBtn" class="ghost">+ Add Item</button>
-
-        <div style="display:flex;gap:8px;margin-top:10px;">
-          <input type="number" id="taxInput" placeholder="Tax %" style="flex:1;" min="0" step="0.01">
-          <input type="text" id="invoicePrefix" placeholder="Invoice Prefix (optional)" style="flex:1;">
-        </div>
-
-        <button id="generateBtn" class="primary" style="margin-top:10px;">Generate & Save Invoice</button>
+        <input type="number" id="taxInput" placeholder="Tax %" style="margin-top:10px;">
+        <select id="currencySelect">
+          <option value="₹">INR (₹)</option>
+          <option value="$">USD ($)</option>
+          <option value="€">EUR (€)</option>
+        </select>
+        <button id="generateBtn" class="primary" style="margin-top:10px;">Generate Invoice</button>
       </div>
-
       <div class="summary card">
         <h3>Summary</h3>
         <p>Total invoices: <span id="totalCount">0</span></p>
         <p>Last invoice: <span id="lastInv">—</span></p>
-        <div style="margin-top:12px;">
-          <button id="openRecordsTabBtn" class="ghost">Open Records</button>
-        </div>
       </div>
     </div>
   </div>
 
-  <!-- Invoice Records -->
+  <!-- RECORDS -->
   <div id="paneRecords" style="display:none;">
     <div class="card">
       <h3>Invoice Records</h3>
@@ -142,23 +121,20 @@ button.warn{background:var(--danger);color:#fff;}
         <thead><tr><th>ID</th><th>Client</th><th>Date</th><th>Total</th><th>Actions</th></tr></thead>
         <tbody id="recordsBody"></tbody>
       </table>
-      <div style="display:flex;gap:10px;margin-top:10px;">
-        <button id="deleteAllBtn" class="warn">Delete All</button>
-        <div class="small-muted" style="margin-left:auto;">Records are per Firebase user.</div>
-      </div>
+      <button id="deleteAllBtn" class="warn" style="margin-top:10px;">Delete All</button>
     </div>
   </div>
 </div>
 
-<!-- Modal -->
+<!-- MODAL -->
 <div class="modal-backdrop" id="modalBackdrop">
   <div class="modal">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+    <div style="display:flex;justify-content:space-between;">
       <div>
         <h3 id="modalInv">Invoice #</h3>
         <p id="modalDate"></p>
       </div>
-      <div style="display:flex;gap:8px;">
+      <div>
         <button id="printBtn" class="primary">Print</button>
         <button id="downloadBtn" class="ghost">Download PDF</button>
         <button id="closeModalBtn" class="warn">Close</button>
@@ -169,450 +145,305 @@ button.warn{background:var(--danger);color:#fff;}
   </div>
 </div>
 
+
 <script>
-/* ================= FIREBASE CONFIG (fixed storageBucket) ================= */
+// ---------------- Firebase Setup ----------------
 const firebaseConfig = {
   apiKey: "AIzaSyALJEa8u1PdLwmOjbtfWWpBRwdNwAIvKAU",
   authDomain: "billing-database-18013.firebaseapp.com",
   databaseURL: "https://billing-database-18013-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "billing-database-18013",
-  storageBucket: "billing-database-18013.appspot.com", // <-- fixed
+  storageBucket: "billing-database-18013.appspot.com",
   messagingSenderId: "108079794708",
   appId: "1:108079794708:web:3cc0c8654b1520e835b501",
   measurementId: "G-3K6LS952RP"
 };
+
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-/* ================== ELEMENTS ================== */
-const emailInput = document.getElementById('email');
-const passInput = document.getElementById('password');
-const loginBtn = document.getElementById('loginBtn');
-const registerBtn = document.getElementById('registerBtn');
-const logoutBtn = document.getElementById('logoutBtn');
-const authMsg = document.getElementById('authMsg');
-const mainApp = document.getElementById('mainApp');
 
-const tabCreateBtn = document.getElementById('tabCreateBtn');
-const tabRecordsBtn = document.getElementById('tabRecordsBtn');
-const tabCompanyBtn = document.getElementById('tabCompanyBtn');
-const paneCreate = document.getElementById('paneCreate');
-const paneRecords = document.getElementById('paneRecords');
-const paneCompany = document.getElementById('paneCompany');
-
-const companyName = document.getElementById('companyName');
-const companyAddress = document.getElementById('companyAddress');
-const companyPhone = document.getElementById('companyPhone');
-const companyGST = document.getElementById('companyGST');
-const defaultTax = document.getElementById('defaultTax');
-const saveCompanyBtn = document.getElementById('saveCompanyBtn');
-const loadCompanyBtn = document.getElementById('loadCompanyBtn');
-const companyMsg = document.getElementById('companyMsg');
-
-const itemsContainer = document.getElementById('itemsContainer');
-const addItemBtn = document.getElementById('addItemBtn');
-const taxInput = document.getElementById('taxInput');
-const currencySelect = document.getElementById('currencySelect');
-const clientNameInput = document.getElementById('clientName');
-const clientEmailInput = document.getElementById('clientEmail');
-const clientPhoneInput = document.getElementById('clientPhone');
-const dueDateInput = document.getElementById('dueDate');
-const generateBtn = document.getElementById('generateBtn');
-const totalCount = document.getElementById('totalCount');
-const lastInv = document.getElementById('lastInv');
-const recordsBody = document.getElementById('recordsBody');
-const searchInput = document.getElementById('searchInput');
-const deleteAllBtn = document.getElementById('deleteAllBtn');
-const modalBackdrop = document.getElementById('modalBackdrop');
-const modalInv = document.getElementById('modalInv');
-const modalDate = document.getElementById('modalDate');
-const modalContent = document.getElementById('modalContent');
-const printBtn = document.getElementById('printBtn');
-const downloadBtn = document.getElementById('downloadBtn');
-const closeModalBtn = document.getElementById('closeModalBtn');
-const openRecordsTabBtn = document.getElementById('openRecordsTabBtn');
-const invoicePrefix = document.getElementById('invoicePrefix');
-
-/* ================== UI Helpers ================== */
-function showPane(pane){
-  paneCreate.style.display='none'; paneRecords.style.display='none'; paneCompany.style.display='none';
-  tabCreateBtn.classList.remove('active'); tabRecordsBtn.classList.remove('active'); tabCompanyBtn.classList.remove('active');
-  if(pane==='create'){ paneCreate.style.display='block'; tabCreateBtn.classList.add('active');}
-  if(pane==='records'){ paneRecords.style.display='block'; tabRecordsBtn.classList.add('active');}
-  if(pane==='company'){ paneCompany.style.display='block'; tabCompanyBtn.classList.add('active');}
-}
-tabCreateBtn.onclick=()=>showPane('create');
-tabRecordsBtn.onclick=()=>showPane('records');
-tabCompanyBtn.onclick=()=>showPane('company');
-openRecordsTabBtn && (openRecordsTabBtn.onclick = ()=>showPane('records'));
-
-/* ================== AUTH ================== */
-function showAuthMessage(msg,color='red'){
-  authMsg.style.color = color;
-  authMsg.textContent = msg;
-}
-loginBtn.addEventListener('click', async () => {
-  showAuthMessage('Signing in...', 'var(--muted)');
+// ----------------- Auth -----------------
+document.getElementById("loginBtn").onclick = async () => {
   try {
-    await auth.signInWithEmailAndPassword(emailInput.value.trim(), passInput.value.trim());
-    showAuthMessage('', 'green');
-  } catch (e) {
-    // show friendly error
-    showAuthMessage(formatAuthError(e), 'red');
-  }
-});
-registerBtn.addEventListener('click', async () => {
-  showAuthMessage('Creating account...', 'var(--muted)');
-  try {
-    await auth.createUserWithEmailAndPassword(emailInput.value.trim(), passInput.value.trim());
-    showAuthMessage('Account created — logged in.', 'green');
-  } catch (e) {
-    showAuthMessage(formatAuthError(e), 'red');
-  }
-});
-logoutBtn.addEventListener('click', ()=>auth.signOut());
-
-function formatAuthError(e){
-  if(!e || !e.code) return (e && e.message) ? e.message : 'Authentication error';
-  // friendly mapping (fallback to code)
-  const code = e.code.replace('auth/','');
-  const map = {
-    'invalid-email':'Invalid email',
-    'user-disabled':'Account disabled',
-    'user-not-found':'User not found',
-    'wrong-password':'Wrong password',
-    'email-already-in-use':'Email already in use',
-    'weak-password':'Weak password (min 6 chars)'
-  };
-  return map[code] || code;
-}
-
-auth.onAuthStateChanged(user=>{
-  if(user){
-    mainApp.style.display='block';
-    logoutBtn.style.display='inline-block';
-    showAuthMessage('', 'green');
-    // load user data
-    loadCompanyInfo();
-    loadInvoices(); // real-time
-    showPane('create');
-  }else{
-    mainApp.style.display='none';
-    logoutBtn.style.display='none';
-  }
-});
-
-/* ================== COMPANY ================== */
-saveCompanyBtn.onclick = async()=>{
-  if(!auth.currentUser) return showCompanyMsg('Not authenticated', 'red');
-  try{
-    const userId = auth.currentUser.uid;
-    await db.collection('companies').doc(userId).set({
-      name: companyName.value.trim() || '',
-      address: companyAddress.value.trim() || '',
-      phone: companyPhone.value.trim() || '',
-      gst: companyGST.value.trim() || '',
-      defaultTax: parseFloat(defaultTax.value || 0)
-    }, {merge:true});
-    showCompanyMsg('Saved', 'green');
-  }catch(err){
-    showCompanyMsg('Save failed', 'red');
-    console.error(err);
-  }
+    await auth.signInWithEmailAndPassword(
+      email.value,
+      password.value
+    );
+    authMsg.textContent = "Login successful";
+  } catch (e) { alert(e.message); }
 };
-loadCompanyBtn.onclick = loadCompanyInfo;
 
-function showCompanyMsg(text,color='green'){
-  companyMsg.style.color = color;
-  companyMsg.textContent = text;
-  setTimeout(()=>{ companyMsg.textContent=''; }, 1800);
+document.getElementById("registerBtn").onclick = async () => {
+  try {
+    await auth.createUserWithEmailAndPassword(
+      email.value,
+      password.value
+    );
+    authMsg.textContent = "Registration successful";
+  } catch (e) { alert(e.message); }
+};
+
+document.getElementById("logoutBtn").onclick = () => auth.signOut();
+
+auth.onAuthStateChanged(user => {
+  if (user) {
+    mainApp.style.display = "block";
+    logoutBtn.style.display = "inline-block";
+    loadCompanyInfo();
+    loadInvoices();
+  } else {
+    mainApp.style.display = "none";
+    logoutBtn.style.display = "none";
+  }
+});
+
+
+// ----------------- Tabs -----------------
+tabCreateBtn.onclick = () => showPane("create");
+tabRecordsBtn.onclick = () => showPane("records");
+tabCompanyBtn.onclick = () => showPane("company");
+
+function showPane(x){
+  paneCreate.style.display = paneRecords.style.display = paneCompany.style.display = "none";
+  tabCreateBtn.classList.remove("active");
+  tabRecordsBtn.classList.remove("active");
+  tabCompanyBtn.classList.remove("active");
+
+  if(x==="create"){ paneCreate.style.display="block"; tabCreateBtn.classList.add("active"); }
+  if(x==="records"){ paneRecords.style.display="block"; tabRecordsBtn.classList.add("active"); }
+  if(x==="company"){ paneCompany.style.display="block"; tabCompanyBtn.classList.add("active"); }
 }
+
+
+// ----------------- Company Save -----------------
+saveCompanyBtn.onclick = async () => {
+  const uid = auth.currentUser.uid;
+  await db.collection("companies").doc(uid).set({
+    name: companyName.value,
+    address: companyAddress.value,
+    phone: companyPhone.value,
+    gst: companyGST.value,
+    defaultTax: parseFloat(defaultTax.value)
+  });
+  companyMsg.textContent = "Saved!";
+  setTimeout(() => companyMsg.textContent="",1500);
+};
 
 async function loadCompanyInfo(){
-  if(!auth.currentUser) return;
-  try{
-    const userId = auth.currentUser.uid;
-    const doc = await db.collection('companies').doc(userId).get();
-    if(doc.exists){
-      const data = doc.data();
-      companyName.value = data.name || '';
-      companyAddress.value = data.address || '';
-      companyPhone.value = data.phone || '';
-      companyGST.value = data.gst || '';
-      defaultTax.value = (data.defaultTax !== undefined) ? data.defaultTax : 10;
-      taxInput.value = (data.defaultTax !== undefined) ? data.defaultTax : 10;
-    } else {
-      // defaults
-      defaultTax.value = 10;
-      taxInput.value = 10;
-    }
-  }catch(err){
-    console.error('loadCompanyInfo', err);
+  const uid = auth.currentUser.uid;
+  const doc = await db.collection("companies").doc(uid).get();
+  if(doc.exists){
+    const c = doc.data();
+    companyName.value = c.name || "";
+    companyAddress.value = c.address || "";
+    companyPhone.value = c.phone || "";
+    companyGST.value = c.gst || "";
+    defaultTax.value = c.defaultTax || 10;
+    taxInput.value = c.defaultTax || 10;
   }
 }
 
-/* ================== ITEMS UI ================== */
-function addItem(desc='',qty=1,price=0){
-  const div=document.createElement('div'); div.className='item-row';
-  const safeDesc = (desc+'').replace(/"/g,'&quot;');
-  div.innerHTML=`
-    <input class="desc" placeholder="Description" value="${safeDesc}">
+
+// ----------------- Invoice -----------------
+addItem();
+addItemBtn.onclick = () => addItem();
+
+function addItem(desc="", qty=1, price=0){
+  const row=document.createElement("div");
+  row.className="item-row";
+  row.innerHTML=`
+    <input class="desc" placeholder="Description" value="${desc}">
     <input class="qty" type="number" min="1" value="${qty}">
     <input class="price" type="number" min="0" step="0.01" value="${price}">
-    <button class="remove" title="Remove item">✕</button>`;
-  div.querySelector('.remove').onclick=()=>div.remove();
-  itemsContainer.appendChild(div);
+    <button class="remove">✕</button>
+  `;
+  row.querySelector(".remove").onclick=()=>row.remove();
+  itemsContainer.appendChild(row);
 }
-addItemBtn.onclick=()=>addItem();
-addItem(); // one empty row
 
-/* ================== INVOICE ID (transaction) ================== */
-async function getNextInvoiceNumber(userId){
-  const counterRef = db.collection('counters').doc(userId);
-  let nextNum = 1;
-  await db.runTransaction(async(t)=>{
-    const doc = await t.get(counterRef);
-    if(doc.exists && doc.data() && typeof doc.data().next === 'number'){
-      nextNum = doc.data().next + 1;
-    } else {
-      nextNum = 1;
-    }
-    t.set(counterRef, { next: nextNum }, { merge: true });
+
+// Auto invoice number
+async function getNextInvoiceNumber(uid){
+  const ref=db.collection("counters").doc(uid);
+  let next=1;
+
+  await db.runTransaction(async t => {
+    const doc = await t.get(ref);
+    if(doc.exists) next = doc.data().next + 1;
+    t.set(ref,{ next: next },{ merge:true });
   });
-  // optional prefix field value
-  const prefix = (invoicePrefix && invoicePrefix.value && invoicePrefix.value.trim()) ? invoicePrefix.value.trim() + '-' : '';
-  return prefix + 'INV-' + String(nextNum).padStart(5,'0');
+
+  return "INV-"+String(next).padStart(5,"0");
 }
 
-/* ================== GENERATE INVOICE ================== */
-generateBtn.onclick = async()=>{
-  if(!auth.currentUser){ alert('Login first'); return; }
-  if(!clientNameInput.value.trim()){ alert('Enter client name'); return; }
 
-  // collect items
-  const rows = Array.from(itemsContainer.querySelectorAll('.item-row'));
-  const items = []; let subtotal = 0;
+// Generate invoice
+generateBtn.onclick = async () => {
+  if(!clientName.value){ alert("Enter client name"); return; }
+
+  const rows=[...document.querySelectorAll(".item-row")];
+  const items=[]; let subtotal=0;
+
   rows.forEach(r=>{
-    const d = r.querySelector('.desc').value.trim();
-    const q = parseFloat(r.querySelector('.qty').value || 0);
-    const p = parseFloat(r.querySelector('.price').value || 0);
-    if(d && q > 0){
-      const total = Math.round((q * p) * 100) / 100;
-      items.push({desc:d,qty:q,price:p,total});
-      subtotal += total;
+    const d=r.querySelector(".desc").value;
+    const q=parseFloat(r.querySelector(".qty").value);
+    const p=parseFloat(r.querySelector(".price").value);
+    if(d && q>0){
+      items.push({desc:d,qty:q,price:p,total:q*p});
+      subtotal+=q*p;
     }
   });
-  if(items.length === 0){ alert('Add at least one item with description, qty and price'); return; }
 
-  const tax = parseFloat(taxInput.value || 0);
-  const total = Math.round(subtotal * (1 + tax/100) * 100) / 100;
-  const userId = auth.currentUser.uid;
+  if(items.length===0){ alert("Add at least one item"); return; }
 
-  try{
-    const invoiceId = await getNextInvoiceNumber(userId);
-    const invoice = {
-      id: invoiceId,
-      client: clientNameInput.value.trim(),
-      clientEmail: clientEmailInput.value.trim(),
-      clientPhone: clientPhoneInput.value.trim(),
-      items,
-      subtotal,
-      taxPct: tax,
-      total,
-      currency: currencySelect.value,
-      date: new Date().toISOString().split('T')[0],
-      dueDate: dueDateInput.value || '',
-      userId
-    };
-    await db.collection('invoices').doc(invoice.id).set(invoice);
-    // clear form
-    clientNameInput.value=''; clientEmailInput.value=''; clientPhoneInput.value=''; dueDateInput.value='';
-    itemsContainer.innerHTML=''; addItem();
-    taxInput.value = defaultTax.value || 0;
-    alert('Invoice saved: ' + invoice.id);
-  }catch(e){
-    console.error('save invoice', e);
-    alert('Failed to save invoice: ' + (e.message || e));
-  }
+  const uid = auth.currentUser.uid;
+  const tax = parseFloat(taxInput.value||0);
+  const invoiceId = await getNextInvoiceNumber(uid);
+
+  const invoice={
+    id: invoiceId,
+    userId: uid,
+    client: clientName.value,
+    clientEmail: clientEmail.value,
+    clientPhone: clientPhone.value,
+    items,
+    subtotal,
+    taxPct: tax,
+    total: subtotal*(1+tax/100),
+    currency: currencySelect.value,
+    date: new Date().toISOString().split("T")[0],
+    dueDate: dueDate.value
+  };
+
+  await db.collection("invoices").doc(invoiceId).set(invoice);
+
+  clientName.value=clientEmail.value=clientPhone.value="";
+  dueDate.value="";
+  itemsContainer.innerHTML="";
+  addItem();
 };
 
-/* ================== REAL-TIME INVOICES ================== */
-let invoicesUnsub = null;
+
+// ----------------- Load invoices -----------------
 function loadInvoices(){
-  if(!auth.currentUser) return;
-  if(invoicesUnsub) invoicesUnsub(); // detach previous
   const uid = auth.currentUser.uid;
-  const q = db.collection('invoices').where('userId','==',uid).orderBy('date','desc');
-  invoicesUnsub = q.onSnapshot(snapshot=>{
-    recordsBody.innerHTML=''; totalCount.textContent = snapshot.size;
-    lastInv.textContent = snapshot.size ? snapshot.docs[0].data().id : '—';
-    snapshot.docs.forEach(doc=>{
-      const inv = doc.data();
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${inv.id}</td><td>${inv.client}</td><td>${inv.date}</td><td>${inv.currency} ${inv.total.toFixed(2)}</td>
+  const q=db.collection("invoices").where("userId","==",uid).orderBy("date","desc");
+
+  q.onSnapshot(snap=>{
+    recordsBody.innerHTML="";
+    totalCount.textContent = snap.size;
+    lastInv.textContent = snap.size ? snap.docs[0].data().id : "—";
+
+    snap.docs.forEach(doc=>{
+      const inv=doc.data();
+      const tr=document.createElement("tr");
+      tr.innerHTML=`
+        <td>${inv.id}</td>
+        <td>${inv.client}</td>
+        <td>${inv.date}</td>
+        <td>${inv.currency} ${inv.total.toFixed(2)}</td>
         <td>
           <button class="viewBtn" data-id="${inv.id}">View</button>
           <button class="delBtn" data-id="${inv.id}">Delete</button>
-        </td>`;
+        </td>
+      `;
       recordsBody.appendChild(tr);
     });
-    // wire buttons
-    document.querySelectorAll('.viewBtn').forEach(btn=>btn.onclick=()=>openModal(btn.dataset.id));
-    document.querySelectorAll('.delBtn').forEach(btn=>btn.onclick=async()=>{
-      if(confirm('Delete invoice '+btn.dataset.id+'?')){
-        try{
-          await db.collection('invoices').doc(btn.dataset.id).delete();
-        }catch(err){ console.error('delete error', err); alert('Delete failed'); }
-      }
+
+    [...document.querySelectorAll(".viewBtn")].forEach(btn=>{
+      btn.onclick=()=>openModal(btn.dataset.id);
     });
-  }, err => {
-    console.error('loadInvoices onSnapshot error', err);
+
+    [...document.querySelectorAll(".delBtn")].forEach(btn=>{
+      btn.onclick=async()=>{
+        if(confirm("Delete invoice "+btn.dataset.id+"?")){
+          await db.collection("invoices").doc(btn.dataset.id).delete();
+        }
+      };
+    });
+
   });
 }
 
-/* ================== OPEN / PRINT / PDF ================== */
-async function buildFullInvoiceHtml(inv){
-  // fetch company
-  let company = {};
-  try{
-    const doc = await db.collection('companies').doc(inv.userId).get();
-    if(doc.exists) company = doc.data();
-  }catch(e){ console.warn('company fetch failed', e); }
 
-  // build html (simple)
-  let html = `<div class="printable-invoice">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-      <div>
-        <h2>${company.name || 'Your Company'}</h2>
-        <div>${(company.address||'').replace(/\n/g,'<br>')}</div>
-        <div>${company.phone ? 'Phone: '+company.phone : ''}</div>
-        <div>${company.gst ? 'GST: '+company.gst : ''}</div>
-      </div>
-      <div style="text-align:right;">
-        <h3>${inv.id}</h3>
-        <div>Date: ${inv.date}</div>
-        ${inv.dueDate ? `<div>Due: ${inv.dueDate}</div>` : ''}
-      </div>
-    </div>
-    <div style="margin-bottom:12px;">
-      <strong>Bill To:</strong><br>
-      ${inv.client}<br>
-      ${inv.clientEmail ? ('Email: ' + inv.clientEmail + '<br>') : ''}
-      ${inv.clientPhone ? ('Phone: ' + inv.clientPhone) : ''}
-    </div>
-
-    <table>
-      <thead><tr><th>Description</th><th style="width:80px">Qty</th><th style="width:120px">Price</th><th style="width:120px">Total</th></tr></thead>
-      <tbody>`;
-  inv.items.forEach(it=>{
-    html += `<tr><td>${it.desc}</td><td>${it.qty}</td><td>${inv.currency} ${Number(it.price).toFixed(2)}</td><td>${inv.currency} ${Number(it.total).toFixed(2)}</td></tr>`;
-  });
-  html += `</tbody></table>
-    <div style="display:flex;justify-content:flex-end;margin-top:12px;">
-      <div style="width:320px;">
-        <div style="display:flex;justify-content:space-between;padding:6px 0;"><div>Subtotal</div><div>${inv.currency} ${Number(inv.subtotal).toFixed(2)}</div></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 0;"><div>Tax (${inv.taxPct}%)</div><div>${inv.currency} ${ (Number(inv.subtotal) * inv.taxPct/100).toFixed(2) }</div></div>
-        <hr>
-        <div style="display:flex;justify-content:space-between;padding:6px 0;font-weight:700;"><div>Total</div><div>${inv.currency} ${Number(inv.total).toFixed(2)}</div></div>
-      </div>
-    </div>
-
-    <div style="margin-top:18px;font-size:13px;color:#555;">
-      <strong>Notes:</strong><br>
-      Thank you for your business.
-    </div>
-  </div>`;
-  return html;
-}
-
+// ----------------- Modal -----------------
 function openModal(id){
-  db.collection('invoices').doc(id).get().then(async doc=>{
+  db.collection("invoices").doc(id).get().then(doc=>{
     if(!doc.exists) return;
-    const inv = doc.data();
+    const inv=doc.data();
+
     modalInv.textContent = inv.id;
     modalDate.textContent = inv.date;
-    const html = await buildFullInvoiceHtml(inv);
-    modalContent.innerHTML = html;
-    modalBackdrop.style.display = 'flex';
 
-    // attach current invoice id to buttons via closure
-    printBtn.onclick = ()=>doPrint(inv);
-    downloadBtn.onclick = ()=>doDownload(inv);
-  }).catch(err=>console.error('openModal',err));
-}
+    let html=`
+      <h4>Client: ${inv.client}</h4>
+      Email: ${inv.clientEmail}<br>
+      Phone: ${inv.clientPhone}
+      <br><br>
+      <table style="width:100%;border-collapse:collapse;">
+        <tr><th>Description</th><th>Qty</th><th>Price</th><th>Total</th></tr>
+    `;
 
-closeModalBtn.onclick = ()=>{ modalBackdrop.style.display='none'; modalContent.innerHTML=''; };
-
-function doPrint(inv){
-  buildFullInvoiceHtml(inv).then(html=>{
-    const w = window.open('', '_blank', 'width=800,height=900');
-    w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + inv.id + '</title>');
-    // include simple styles
-    w.document.write('<style>body{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;color:#0f172a;padding:18px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #eee;text-align:left}</style>');
-    w.document.write('</head><body>');
-    w.document.write(html);
-    w.document.write('</body></html>');
-    w.document.close();
-    w.focus();
-    w.print();
-    // w.close(); // don't close automatically because some browsers block it
-  });
-}
-
-function doDownload(inv){
-  buildFullInvoiceHtml(inv).then(html=>{
-    // create a temporary container
-    const tmp = document.createElement('div');
-    tmp.style.position = 'fixed';
-    tmp.style.left = '-9999px';
-    tmp.innerHTML = html;
-    document.body.appendChild(tmp);
-    html2pdf().from(tmp).set({
-      margin: 10,
-      filename: inv.id + '.pdf',
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    }).save().then(()=>{
-      document.body.removeChild(tmp);
-    }).catch(err=>{
-      console.error('pdf error', err);
-      document.body.removeChild(tmp);
-      alert('PDF generation failed');
+    inv.items.forEach(it=>{
+      html+=`<tr>
+        <td>${it.desc}</td>
+        <td>${it.qty}</td>
+        <td>${inv.currency} ${it.price.toFixed(2)}</td>
+        <td>${inv.currency} ${it.total.toFixed(2)}</td>
+      </tr>`;
     });
+
+    html+=`</table>
+      <br>
+      Subtotal: ${inv.currency} ${inv.subtotal.toFixed(2)}<br>
+      Tax: ${inv.taxPct}%<br>
+      <b>Total: ${inv.currency} ${inv.total.toFixed(2)}</b>
+    `;
+
+    modalContent.innerHTML=html;
+    modalBackdrop.style.display="flex";
   });
 }
 
-/* ================== DELETE ALL ================== */
-deleteAllBtn.onclick = async()=>{
-  if(!auth.currentUser) return alert('Login first');
-  if(!confirm('Delete all invoices?')) return;
-  try{
-    const snapshot = await db.collection('invoices').where('userId','==',auth.currentUser.uid).get();
-    const batch = db.batch();
-    snapshot.docs.forEach(d => batch.delete(d.ref));
-    await batch.commit();
-    alert('All invoices deleted');
-  }catch(e){
-    console.error('deleteAll', e);
-    alert('Delete all failed');
+closeModalBtn.onclick=()=>modalBackdrop.style.display="none";
+
+printBtn.onclick=()=>{
+  const w = window.open("");
+  w.document.write(modalContent.innerHTML);
+  w.print();
+  w.close();
+};
+
+downloadBtn.onclick=()=>{
+  html2pdf().from(modalContent).save(modalInv.textContent+".pdf");
+};
+
+
+// ----------------- Delete All -----------------
+deleteAllBtn.onclick=async()=>{
+  if(confirm("Delete ALL invoices?")){
+    const snap = await db.collection("invoices")
+      .where("userId","==",auth.currentUser.uid).get();
+
+    snap.forEach(d=>d.ref.delete());
   }
 };
 
-/* ================== SEARCH ================== */
-searchInput.oninput = ()=> {
-  const filter = searchInput.value.toLowerCase();
-  document.querySelectorAll('#recordsBody tr').forEach(tr=>{
-    const id = (tr.cells[0] && tr.cells[0].textContent || '').toLowerCase();
-    const client = (tr.cells[1] && tr.cells[1].textContent || '').toLowerCase();
-    tr.style.display = (id.includes(filter) || client.includes(filter)) ? '' : 'none';
+
+// ----------------- Search -----------------
+searchInput.oninput = () => {
+  const f = searchInput.value.toLowerCase();
+  [...recordsBody.querySelectorAll("tr")].forEach(tr=>{
+    tr.style.display =
+      tr.cells[0].textContent.toLowerCase().includes(f) ||
+      tr.cells[1].textContent.toLowerCase().includes(f)
+      ? "" : "none";
   });
 };
 
-/* ================== SAFETY / UNLOAD ================== */
-window.addEventListener('beforeunload', ()=>{
-  if(invoicesUnsub) invoicesUnsub();
-});
 </script>
+
 </body>
 </html>
