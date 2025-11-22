@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover" />
-<title>Modern Easy Billing — Clean Layout</title>
+<title>Modern Easy Billing — Clean Layout (Fixed)</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 
@@ -202,18 +202,25 @@ button.warn{background:linear-gradient(90deg,#ef4444,#f97316);color:#fff;}
         </div>
       </div>
 
-      <!-- STATS -->
-      <div class="side-stats" style="margin-top:14px;">
-        <div class="stat"><div class="small-muted">Total invoices</div> <div id="totalCount" class="badge">0</div></div>
-        <div class="stat"><div class="small-muted">Last invoice</div> <div id="lastInv" style="font-weight:800;">—</div></div>
-      </div>
+      <!-- SIDEBAR APP CONTENT (HIDDEN BEFORE LOGIN) -->
+      <div id="sidebarAppSection" style="display:none;">
 
-      <!-- NAV -->
-      <div class="nav" style="margin-top:14px;">
-        <div id="tabCreateBtn" class="nav-item active">Create Invoice</div>
-        <div id="tabRecordsBtn" class="nav-item">Invoice Records</div>
-        <div id="tabCompanyBtn" class="nav-item">Company Info</div>
+        <!-- STATS -->
+        <div class="side-stats" style="margin-top:14px;">
+          <div class="stat"><div class="small-muted">Total invoices</div> <div id="totalCount" class="badge">0</div></div>
+          <div class="stat"><div class="small-muted">Last invoice</div> <div id="lastInv" style="font-weight:800;">—</div></div>
+        </div>
+
+        <!-- NAV -->
+        <div class="nav" style="margin-top:14px;">
+          <div id="tabCreateBtn" class="nav-item active">Create Invoice</div>
+          <div id="tabRecordsBtn" class="nav-item">Invoice Records</div>
+          <div id="tabCompanyBtn" class="nav-item">Company Info</div>
+        </div>
+
       </div>
+      <!-- /sidebarAppSection -->
+
     </aside>
 
     <!-- MAIN -->
@@ -354,7 +361,7 @@ button.warn{background:linear-gradient(90deg,#ef4444,#f97316);color:#fff;}
 
 </div>
 
-<!-- ---------------- ORIGINAL JS (unchanged) ---------------- -->
+<!-- ---------------- ORIGINAL JS (unchanged except sidebarAppSection show/hide) ---------------- -->
 <script>
 // ---------------- Firebase Setup ----------------
 const firebaseConfig = {
@@ -402,6 +409,8 @@ auth.onAuthStateChanged(user => {
     mainApp.style.display = "block";
     logoutBtn.style.display = "inline-block";
     loggedOutNotice.style.display = "none";
+    // show sidebar app content only after login
+    sidebarAppSection.style.display = "block";
     loadCompanyInfo();
     loadInvoices();
   } else {
@@ -409,6 +418,8 @@ auth.onAuthStateChanged(user => {
     mainApp.style.display = "none";
     logoutBtn.style.display = "none";
     loggedOutNotice.style.display = "block";
+    // hide sidebar app content when logged out
+    sidebarAppSection.style.display = "none";
   }
 });
 
