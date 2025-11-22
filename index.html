@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-<title>Modern Easy Billing — Premium UI</title>
+<title>Modern Easy Billing — Perfected UI</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 
@@ -16,7 +16,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
 
 <style>
-/* ------------------ THEME & BASE ------------------ */
+/* ---------- THEME & BASE ---------- */
 :root{
   --bg: #f4f7fb;
   --panel: #ffffff;
@@ -25,7 +25,6 @@
   --accent: #3b82f6;
   --accent2: #7c3aed;
   --danger: #ef4444;
-  --glass: rgba(255,255,255,0.6);
   --radius: 12px;
   --shadow-soft: 0 8px 28px rgba(16,24,40,0.06);
   --shadow-elev: 0 18px 60px rgba(16,24,40,0.09);
@@ -39,7 +38,6 @@
     --panel: rgba(10,14,22,0.55);
     --muted: #9aa4b2;
     --text: #e6eef8;
-    --glass: rgba(255,255,255,0.03);
     --shadow-soft: 0 8px 30px rgba(0,0,0,0.6);
     --shadow-elev: 0 18px 60px rgba(0,0,0,0.6);
   }
@@ -52,70 +50,65 @@ body{padding:16px;}
 /* center container */
 .wrap{max-width:1200px;margin:0 auto;}
 
-/* headings */
-.logo { font-weight:800; font-size:18px; letter-spacing:-0.4px; color:var(--text); }
-.app-title { font-size:16px; color:var(--muted); margin-top:4px; }
+/* topbar */
+.topbar{ display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:12px; }
+.brandRow{ display:flex; gap:12px; align-items:center; }
+.logoBox{ width:46px;height:46px;border-radius:10px;background:linear-gradient(90deg,var(--accent),var(--accent2)); display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800; box-shadow:0 8px 26px rgba(59,130,246,0.14);}
+.appTitle{ font-weight:800; font-size:18px; }
+.appSubtitle{ font-size:13px; color:var(--muted); margin-top:4px; }
 
-/* ------------------ LAYOUT ------------------ */
+/* layout */
 .app-shell{ display:grid; grid-template-columns:260px 1fr; gap:18px; align-items:start; min-height:80vh; }
 @media(max-width:1000px){ .app-shell{ grid-template-columns:1fr; } }
 
 /* sidebar */
-.sidebar{
-  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.92));
-  border-radius:var(--radius);
-  padding:16px;
-  box-shadow:var(--shadow-soft);
-  height:fit-content;
-  position:sticky;
-  top:16px;
-}
+.sidebar{ background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.92)); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow-soft); position:sticky; top:16px; }
+@media (prefers-color-scheme: dark){ .sidebar{ background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); } }
+.nav{ display:flex; flex-direction:column; gap:10px; margin-top:12px; }
+.nav-item{ padding:10px 12px; border-radius:10px; cursor:pointer; color:var(--muted); font-weight:700; transition:all var(--transition); }
+.nav-item.active{ background: linear-gradient(90deg,var(--accent),var(--accent2)); color:#fff; box-shadow: 0 8px 26px rgba(59,130,246,0.12); }
 
-@media (prefers-color-scheme: dark){
-  .sidebar{ background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); }
-}
-
-.sidebar .brand{ display:flex; gap:12px; align-items:center; margin-bottom:14px; }
-.brand .logoBox{ width:44px;height:44px;border-radius:10px;background:linear-gradient(90deg,var(--accent),var(--accent2)); display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;box-shadow:0 8px 26px rgba(59,130,246,0.14); }
-.sidebar .nav{ display:flex; flex-direction:column; gap:10px; margin-top:6px; }
-
-/* nav tabs look */
-.nav .nav-item{ padding:10px 12px; border-radius:10px; cursor:pointer; display:flex; align-items:center; gap:10px; color:var(--muted); font-weight:700; transition:all var(--transition); }
-.nav .nav-item.active{ background: linear-gradient(90deg,var(--accent),var(--accent2)); color:#fff; box-shadow: 0 8px 26px rgba(59,130,246,0.12); }
-.nav .nav-item:hover{ transform:translateY(-2px); }
-
-/* quick stats in sidebar */
-.side-stats{ margin-top:12px; display:flex; gap:8px; flex-direction:column; }
+/* stats */
+.side-stats{ margin-top:14px; display:flex; gap:8px; flex-direction:column; }
 .stat{ background:rgba(0,0,0,0.03); padding:10px; border-radius:8px; font-weight:700; display:flex; justify-content:space-between; align-items:center; }
 @media (prefers-color-scheme: dark){ .stat{ background: rgba(255,255,255,0.02); } }
 
-/* ------------------ HEADER / TOPBAR ------------------ */
-.topbar{ display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:12px; }
-.topbar .left{ display:flex; align-items:center; gap:12px; }
-.topbar .search{ min-width:260px; max-width:520px; }
-.topbar .actions{ display:flex; gap:10px; align-items:center; }
+/* main area */
+.main{ display:flex; flex-direction:column; gap:16px; }
 
-/* search input */
-.input-search{ display:flex; align-items:center; gap:8px; background:var(--panel); padding:8px 10px; border-radius:12px; box-shadow:var(--shadow-soft); }
-.input-search input{ border:none; background:transparent; outline:none; width:100%; }
-
-/* ------------------ MAIN AREA ------------------ */
-.main{
-  display:flex; flex-direction:column; gap:16px;
-}
-
-/* large cards */
+/* cards */
 .card{ background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.95)); border-radius:12px; padding:18px; box-shadow:var(--shadow-soft); transition:transform var(--transition); }
 @media (prefers-color-scheme: dark){ .card{ background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02)); } }
 .card h3{ margin:0 0 10px; font-size:16px; }
 
-/* create area layout */
+/* create grid */
 .create-grid{ display:grid; grid-template-columns: 1fr 360px; gap:18px; align-items:start; }
 @media(max-width:980px){ .create-grid{ grid-template-columns:1fr; } }
 
-/* item row */
+/* form controls */
+input, textarea, select{ width:100%; padding:12px 14px; border-radius:10px; border:1px solid #e6e9ef; margin-top:8px; margin-bottom:12px; font-size:15px; color:var(--text); background:transparent; }
+input:focus, textarea:focus, select:focus{ outline:none; box-shadow:0 6px 20px rgba(59,130,246,0.12); border-color:var(--accent); }
+
+/* item rows */
 .item-row{ display:flex; gap:10px; align-items:center; margin-bottom:8px; flex-wrap:wrap; }
 .item-row input{ flex:1; padding:10px; border-radius:10px; border:1px solid #e6e9ef; }
+.item-row .qty{ width:110px; min-width:80px; }
+.item-row .price{ width:140px; min-width:90px; }
+.item-row .remove{ background:transparent; color:var(--danger); font-weight:700; border:none; padding:6px 10px; cursor:pointer; }
+
+/* summary */
+.summary{ padding:16px; display:flex; flex-direction:column; gap:8px; }
+.badge{ padding:6px 10px; border-radius:999px; font-weight:800; color:#fff; background: linear-gradient(90deg,var(--accent),var(--accent2)); }
+
+/* table */
+.table{ width:100%; border-collapse:collapse; font-size:14px; margin-top:12px; }
+.table th, .table td{ padding:10px 8px; border-bottom:1px solid rgba(15,23,42,0.04); text-align:left; vertical-align:middle; }
+.table th{ color:var(--muted); font-weight:700; font-size:13px; }
+@media(max-width:640px){
+  .table thead{ display:none; }
+  .table tbody tr{ display:block; margin-bottom:12px; background:var(--panel); padding:10px; border-radius:10px; box-shadow:var(--shadow-soft); }
+  .table tbody tr td{ display:flex; justify-content:space-between; padding:6px 8px; border-bottom:none; }
+}
 
 /* buttons */
 button{ cursor:pointer; border:none; border-radius:10px; padding:10px 12px; font-weight:700; transition:all var(--transition); }
@@ -123,55 +116,33 @@ button.primary{ background: linear-gradient(90deg,var(--accent),var(--accent2));
 button.ghost{ background:transparent; color:var(--accent); border:1px solid rgba(99,102,241,0.12); }
 button.warn{ background: linear-gradient(90deg,#ef4444,#f97316); color:#fff; }
 
-/* summary card */
-.summary{ padding:16px; display:flex; flex-direction:column; gap:8px; }
-
-/* responsive table */
-.table{ width:100%; border-collapse:collapse; font-size:14px; }
-.table th, .table td{ padding:10px 8px; border-bottom:1px solid rgba(15,23,42,0.04); text-align:left; }
-.table th{ color:var(--muted); font-weight:700; font-size:13px; }
-
-/* compact on small screens - convert to card rows */
-@media(max-width:640px){
-  .table thead{ display:none; }
-  .table tbody tr{ display:block; margin-bottom:12px; background:var(--panel); padding:10px; border-radius:10px; box-shadow:var(--shadow-soft); }
-  .table tbody tr td{ display:flex; justify-content:space-between; padding:6px 8px; border-bottom:none; }
-}
-
 /* modal */
 .modal-backdrop{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background: rgba(2,6,23,0.6); padding:16px; z-index:12000; }
 .modal{ width:100%; max-width:920px; max-height:92vh; overflow:auto; border-radius:12px; padding:18px; box-shadow:var(--shadow-elev); background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.95)); }
 .modal .header{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
 .modal .header .actions{ display:flex; gap:8px; }
 #modalContent{ margin-top:12px; background: linear-gradient(180deg,#fff,#f8fbff); padding:16px; border-radius:10px; box-shadow:var(--shadow-soft); }
-
-/* invoice table inside modal */
 #modalContent table{ width:100%; border-collapse:collapse; margin-top:8px; }
 #modalContent table th, #modalContent table td{ padding:8px 6px; border-bottom:1px dashed rgba(15,23,42,0.06); }
 
-/* totals block */
+/* totals */
 .totals{ display:flex; justify-content:flex-end; gap:12px; margin-top:12px; font-weight:700; }
 @media(max-width:640px){ .totals{ justify-content:space-between; } }
 
-/* small helpers */
-.small-muted{ color:var(--muted); font-size:13px; }
-.kv{ display:flex; gap:6px; align-items:center; }
-.badge{ padding:6px 10px; border-radius:999px; font-weight:800; color:#fff; background: linear-gradient(90deg,var(--accent),var(--accent2)); }
-
-/* animations */
+/* subtle animations */
 .card{ animation:fadeUp .42s ease forwards; opacity:0; transform:translateY(8px); }
 @keyframes fadeUp{ to{ opacity:1; transform:none; } }
 
-/* print styles */
+/* print */
 @media print{
   body *{ visibility:hidden; }
   #modalContent, #modalContent *{ visibility:visible; }
   #modalContent{ position:fixed; left:0; top:0; width:100%; }
 }
 
-/* ensure critical ids are visible and not changed */
-#authSection, #mainApp{ width:100%; }
-#authSection .primary, #authSection .ghost{ width:48%; }
+/* small tweaks */
+.small-muted{ color:var(--muted); font-size:13px; }
+.center{ display:flex; align-items:center; gap:8px; }
 </style>
 </head>
 <body>
@@ -179,27 +150,16 @@ button.warn{ background: linear-gradient(90deg,#ef4444,#f97316); color:#fff; }
 
   <!-- Topbar -->
   <div class="topbar">
-    <div class="left">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <div class="brand">
-          <div class="logoBox" style="width:46px;height:46px;border-radius:10px;background:linear-gradient(90deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;">
-            EB
-          </div>
-          <div>
-            <div class="logo">Modern Easy Billing</div>
-            <div class="app-title">Create & manage invoices — premium UI</div>
-          </div>
-        </div>
+    <div class="brandRow">
+      <div class="logoBox">EB</div>
+      <div>
+        <div class="appTitle">Modern Easy Billing</div>
+        <div class="appSubtitle">Create & manage invoices — perfected UI</div>
       </div>
     </div>
 
-    <div class="actions" style="display:flex;gap:10px;align-items:center;">
-      <div class="input-search" style="display:none;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="opacity:0.6"><path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></circle></svg>
-        <input placeholder="Search invoices..." />
-      </div>
-
-      <!-- Logout button (JS shows/hides) -->
+    <div style="display:flex;align-items:center;gap:10px;">
+      <!-- Logout button will be shown by JS when logged in -->
       <button id="logoutBtn" class="warn" style="display:none;">Logout</button>
     </div>
   </div>
@@ -208,8 +168,8 @@ button.warn{ background: linear-gradient(90deg,#ef4444,#f97316); color:#fff; }
 
     <!-- SIDEBAR -->
     <aside class="sidebar card" aria-label="Sidebar">
-      <div class="brand">
-        <div class="logoBox">EB</div>
+      <div style="display:flex;gap:12px;align-items:center;">
+        <div class="logoBox" style="width:44px;height:44px;">EB</div>
         <div>
           <div style="font-weight:800;">Modern Easy Billing</div>
           <div class="small-muted">Invoice app</div>
@@ -217,7 +177,7 @@ button.warn{ background: linear-gradient(90deg,#ef4444,#f97316); color:#fff; }
       </div>
 
       <!-- AUTH CARD (kept IDs intact) -->
-      <div id="authSection" style="margin-top:12px;">
+      <div id="authSection" style="margin-top:16px;">
         <div style="display:flex;flex-direction:column;gap:8px;">
           <h3 style="margin:0 0 6px;">Login / Register</h3>
           <input type="email" id="email" placeholder="Email">
@@ -226,21 +186,18 @@ button.warn{ background: linear-gradient(90deg,#ef4444,#f97316); color:#fff; }
             <button id="loginBtn" class="primary">Login</button>
             <button id="registerBtn" class="ghost">Register</button>
           </div>
-          <div style="display:flex;gap:8px;margin-top:8px;">
-            <button id="demoFill" class="ghost" style="flex:1;display:none;">Fill Demo</button>
-          </div>
           <div id="authMsg" style="margin-top:10px;color:green;font-weight:700;"></div>
         </div>
       </div>
 
       <!-- QUICK STATS -->
-      <div class="side-stats" style="margin-top:14px;">
-        <div class="stat"><span class="small-muted">Total invoices</span> <span id="totalCount" class="badge">0</span></div>
-        <div class="stat"><span class="small-muted">Last invoice</span> <span id="lastInv" style="font-weight:800;">—</span></div>
+      <div class="side-stats" style="margin-top:18px;">
+        <div class="stat"><div class="small-muted">Total invoices</div> <div id="totalCount" class="badge">0</div></div>
+        <div class="stat"><div class="small-muted">Last invoice</div> <div id="lastInv" style="font-weight:800;">—</div></div>
       </div>
 
       <!-- NAV (keeps IDs for tabs) -->
-      <div class="nav" style="margin-top:14px;">
+      <div class="nav" style="margin-top:18px;">
         <div id="tabCreateBtn" class="nav-item active">Create Invoice</div>
         <div id="tabRecordsBtn" class="nav-item">Invoice Records</div>
         <div id="tabCompanyBtn" class="nav-item">Company Info</div>
@@ -257,6 +214,7 @@ button.warn{ background: linear-gradient(90deg,#ef4444,#f97316); color:#fff; }
     <main class="main">
 
       <div id="mainApp" style="display:none;">
+
         <!-- COMPANY PANE -->
         <div id="paneCompany" style="display:none;">
           <div class="card">
@@ -278,6 +236,7 @@ button.warn{ background: linear-gradient(90deg,#ef4444,#f97316); color:#fff; }
           <div class="create-grid">
             <div class="card">
               <h3>Client & Items</h3>
+
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                 <input type="text" id="clientName" placeholder="Client Name">
                 <input type="email" id="clientEmail" placeholder="Client Email">
@@ -288,7 +247,8 @@ button.warn{ background: linear-gradient(90deg,#ef4444,#f97316); color:#fff; }
               <div style="margin-top:12px;">
                 <h3 style="font-size:15px;margin-bottom:8px;">Items</h3>
                 <div id="itemsContainer"></div>
-                <div style="display:flex;gap:8px;margin-top:8px;">
+
+                <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
                   <button id="addItemBtn" class="ghost">+ Add Item</button>
                   <input type="number" id="taxInput" placeholder="Tax %" style="width:120px;">
                   <select id="currencySelect" style="width:120px;">
@@ -298,8 +258,9 @@ button.warn{ background: linear-gradient(90deg,#ef4444,#f97316); color:#fff; }
                   </select>
                 </div>
 
-                <div style="display:flex;gap:10px;margin-top:12px;">
+                <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;">
                   <button id="generateBtn" class="primary">Generate Invoice</button>
+                  <!-- deleteAllBtn exists for JS; hidden here to avoid accidental clicks -->
                   <button id="deleteAllBtn" class="warn" style="display:none;">Delete All</button>
                 </div>
               </div>
@@ -310,7 +271,7 @@ button.warn{ background: linear-gradient(90deg,#ef4444,#f97316); color:#fff; }
               <div style="display:flex;flex-direction:column;gap:8px;">
                 <div style="display:flex;justify-content:space-between;">
                   <div class="small-muted">Total invoices</div>
-                  <div id="summaryTotal" style="font-weight:800;"> <span id="totalCount-duplicate" style="display:none"></span> <span id="totalCountCopy"></span></div>
+                  <div id="totalCountCopy" style="font-weight:800;">0</div>
                 </div>
 
                 <div style="display:flex;justify-content:space-between;">
@@ -350,15 +311,21 @@ button.warn{ background: linear-gradient(90deg,#ef4444,#f97316); color:#fff; }
             </div>
           </div>
         </div>
+
       </div>
 
-      <!-- Fallback message when not logged in -->
+      <!-- Visible notice when logged out -->
       <div id="loggedOutNotice" class="card" style="display:none;">
         <h3>Welcome</h3>
         <p class="small-muted">Please log in or register from the left panel to start creating invoices.</p>
       </div>
 
     </main>
+  </div>
+
+  <!-- Hidden duplicates / copies JS might look for (safe & hidden but present) -->
+  <div style="display:none;">
+    <span id="totalCount-duplicate">0</span>
   </div>
 
   <!-- MODAL (Invoice preview) -->
@@ -384,7 +351,7 @@ button.warn{ background: linear-gradient(90deg,#ef4444,#f97316); color:#fff; }
 
 </div>
 
-<!-- ------------------ UNCHANGED SCRIPT (original JS & firebase config) ------------------ -->
+<!-- ------------------ ORIGINAL SCRIPT (left unchanged) ------------------ -->
 <script>
 // ---------------- Firebase Setup ----------------
 const firebaseConfig = {
@@ -431,6 +398,7 @@ auth.onAuthStateChanged(user => {
     authSection.style.display = "none";
     mainApp.style.display = "block";
     logoutBtn.style.display = "inline-block";
+    loggedOutNotice.style.display = "none";
     loadCompanyInfo();
     loadInvoices();
   } else {
@@ -679,6 +647,16 @@ deleteAllBtn.onclick=async()=>{
   }
 };
 
+// Also wire footer delete button (exists with different id)
+deleteAllBtnFooter.onclick = async () => {
+  if(confirm("Delete ALL invoices?")){
+    const snap = await db.collection("invoices")
+      .where("userId","==",auth.currentUser.uid).get();
+
+    snap.forEach(d=>d.ref.delete());
+  }
+};
+
 
 // ----------------- Search -----------------
 searchInput.oninput = () => {
@@ -689,6 +667,27 @@ searchInput.oninput = () => {
       tr.cells[1].textContent.toLowerCase().includes(f)
       ? "" : "none";
   });
+};
+
+// Quick view button - open last invoice if exists
+quickViewBtn.onclick = () => {
+  const id = lastInv.textContent;
+  if(id && id !== "—") openModal(id);
+};
+
+// Export all: simple JSON download
+exportAllBtn.onclick = async () => {
+  const uid = auth.currentUser.uid;
+  if(!uid) { alert("Login first"); return; }
+  const snap = await db.collection("invoices").where("userId","==",uid).get();
+  const arr = snap.docs.map(d => d.data());
+  const blob = new Blob([JSON.stringify(arr, null, 2)], {type: "application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "invoices.json";
+  a.click();
+  URL.revokeObjectURL(url);
 };
 
 </script>
