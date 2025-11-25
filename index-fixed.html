@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover" />
+<title>Modern Easy Billing — Clean Layout (Fixed)</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<!-- Firebase v9 COMPAT (unchanged) -->
+<script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-firestore-compat.js"></script>
+
+<!-- PDF lib (unchanged) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+
+<style>
+/* ---------------- THEME & BASE ---------------- */
+:root{
+  --bg: #f4f7fb;
+  --panel: #ffffff;
+  --muted: #6b7280;
+  --text: #0f172a;
+  --accent: #3b82f6;
+  --accent2: #7c3aed;
+  --danger: #ef4444;
+  --radius: 12px;
+  --shadow: 0 8px 30px rgba(16,24,40,0.06);
+  --gap: 16px;
+  --transition: 200ms ease;
+  --sidebar-width: 260px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root{
+    --bg: #061226;
+    --panel: rgba(12,18,26,0.6);
+    --muted: #9aa4b2;
+    --text: #e6eef8;
+    --shadow: 0 8px 30px rgba(0,0,0,0.6);
+  }
+}
+
+*{box-sizing:border-box;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;}
+body{padding:14px;}
+
+/* container */
+.wrap{max-width:1200px;margin:0 auto;padding-bottom:40px;}
+
+/* topbar */
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;}
+.brand{display:flex;align-items:center;gap:12px;}
+.logoBox{width:44px;height:44px;border-radius:10px;background:linear-gradient(90deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;}
+.titleWrap{line-height:1;}
+.title{font-weight:800;font-size:18px;}
+.subtitle{font-size:13px;color:var(--muted);}
+
+/* ---------- LAYOUT ---------- */
+/* Use a stable column layout */
+.app-shell{ display:grid; grid-template-columns: var(--sidebar-width) 1fr; gap:18px; align-items:start; min-height:60vh; }
+@media (max-width:980px){
+  .app-shell{ grid-template-columns:1fr; }
+}
+
+/* ---------- SIDEBAR ---------- */
+.sidebar{ background:var(--panel); border-radius:var(--radius); padding:14px; box-shadow:var(--shadow); }
+@media (prefers-color-scheme: dark){ .sidebar{ background:var(--panel); } }
+
+.nav{display:flex;flex-direction:column;gap:8px;margin-top:12px;}
+.nav-item{padding:10px;border-radius:10px;cursor:pointer;color:var(--muted);font-weight:700;}
+.nav-item.active{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff;}
+
+/* quick stats */
+.side-stats{margin-top:12px;display:flex;flex-direction:column;gap:8px;}
+.stat{background:rgba(0,0,0,0.03);padding:10px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;}
+@media (prefers-color-scheme: dark){ .stat{ background: rgba(255,255,255,0.03); } }
+
+/* ---------- MAIN ---------- */
+.main{display:flex;flex-direction:column;gap:16px;}
+
+/* cards */
+.card{background:var(--panel);border-radius:12px;padding:16px;box-shadow:var(--shadow);}
+/* remove initial opacity animation that caused layout jumping */
+.card { transition: transform var(--transition), box-shadow var(--transition); }
+.card h3{margin:0 0 10px;font-size:16px;}
+
+/* ---------- CREATE GRID ---------- */
+.create-grid{ display:grid; grid-template-columns: 1fr 360px; gap:16px; align-items:start; }
+/* make sure the right column doesn't overlap the left on small screens */
+@media (max-width:980px){
+  .create-grid{ grid-template-columns:1fr; }
+}
+
+/* ensure items container has min height so it won't collapse */
+#itemsContainer{ min-height:60px; display:flex; flex-direction:column; gap:8px; }
+
+/* form controls */
+input,textarea,select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(0,0,0,0.08);background:transparent;color:var(--text);font-size:15px;}
+input:focus,textarea:focus,select:focus{outline:none;box-shadow:0 6px 20px rgba(59,130,246,0.08);border-color:var(--accent);}
+
+/* item rows */
+.item-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.item-row input{flex:1;padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,0.08);}
+.item-row .qty{width:100px;min-width:80px;}
+.item-row .price{width:120px;min-width:90px;}
+.item-row .remove{background:transparent;border:none;color:var(--danger);cursor:pointer;padding:8px;font-weight:800;}
+
+/* buttons */
+button{cursor:pointer;border:none;border-radius:10px;padding:10px 12px;font-weight:700;transition:all var(--transition);}
+button.primary{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff;}
+button.ghost{background:transparent;color:var(--accent);border:1px solid rgba(99,102,241,0.12);}
+button.warn{background:linear-gradient(90deg,#ef4444,#f97316);color:#fff;}
+
+/* summary */
+.summary{padding:14px;display:flex;flex-direction:column;gap:8px;}
+.badge{padding:6px 10px;border-radius:999px;color:#fff;background:linear-gradient(90deg,var(--accent),var(--accent2));font-weight:800;}
+
+/* table */
+.table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px;}
+.table th,.table td{padding:10px;border-bottom:1px solid rgba(0,0,0,0.05);text-align:left;}
+.table th{color:var(--muted);font-weight:700;font-size:13px;}
+@media(max-width:640px){
+  .table thead{display:none;}
+  .table tbody tr{display:block;margin-bottom:12px;background:var(--panel);padding:10px;border-radius:10px;box-shadow:var(--shadow);}
+  .table tbody tr td{display:flex;justify-content:space-between;padding:6px 8px;border-bottom:none;}
+}
+
+/* modal */
+.modal-backdrop{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(2,6,23,0.6);padding:16px;z-index:12000;}
+.modal{width:100%;max-width:920px;max-height:92vh;overflow:auto;border-radius:12px;padding:16px;background:var(--panel);box-shadow:var(--shadow);}
+.modal .header{display:flex;justify-content:space-between;align-items:flex-start;}
+#modalContent{margin-top:12px;background:linear-gradient(180deg,#fff,#f8fbff);padding:14px;border-radius:10px;}
+
+/* ensure modal z-index is above everything */
+#modalBackdrop{z-index:99999;}
+
+/* helpers */
+.small-muted{color:var(--muted);font-size:13px;}
+.center{display:flex;align-items:center;gap:8px;}
+
+/* fix overlapping caused by position:sticky on small screens: remove sticky for small */
+@media (max-width:760px) {
+  .sidebar{ position:relative; top:auto; }
+}
+
+/* avoid very large fixed widths on tiny screens */
+@media (max-width:420px){
+  .create-grid{ gap:12px; }
+  .logoBox{width:40px;height:40px;}
+}
+
+/* keep focus outlines accessible */
+:focus{outline-offset:2px;}
+
+/* ensure elements that JS shows/ hides are visible by default for layout measurement */
+#mainApp{min-height:400px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="logoBox">EB</div>
+      <div class="titleWrap">
+        <div class="title">Modern Easy Billing</div>
+        <div class="subtitle">Create & manage invoices</div>
+      </div>
+    </div>
+
+    <div>
+      <button id="logoutBtn" class="warn" style="display:none;">Logout</button>
+    </div>
+  </div>
+
+  <div class="app-shell">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar card" aria-label="Sidebar">
+      <div style="display:flex;gap:12px;align-items:center;">
+        <div class="logoBox" style="width:44px;height:44px;">EB</div>
+        <div>
+          <div style="font-weight:800;">Modern Easy Billing</div>
+          <div class="small-muted">Invoice app</div>
+        </div>
+      </div>
+
+      <!-- AUTH CARD (IDs preserved) -->
+      <div id="authSection" style="margin-top:14px;">
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <h3 style="margin:0 0 6px;">Login / Register</h3>
+          <input type="email" id="email" placeholder="Email">
+          <input type="password" id="password" placeholder="Password">
+          <div style="display:flex;gap:8px;">
+            <button id="loginBtn" class="primary">Login</button>
+            <button id="registerBtn" class="ghost">Register</button>
+          </div>
+          <div id="authMsg" style="margin-top:10px;color:green;font-weight:700;"></div>
+        </div>
+      </div>
+
+      <!-- SIDEBAR APP CONTENT (HIDDEN BEFORE LOGIN) -->
+      <div id="sidebarAppSection" style="display:none;">
+
+        <!-- STATS -->
+        <div class="side-stats" style="margin-top:14px;">
+          <div class="stat"><div class="small-muted">Total invoices</div> <div id="totalCount" class="badge">0</div></div>
+          <div class="stat"><div class="small-muted">Last invoice</div> <div id="lastInv" style="font-weight:800;">—</div></div>
+        </div>
+
+        <!-- NAV -->
+        <div class="nav" style="margin-top:14px;">
+          <div id="tabCreateBtn" class="nav-item active">Create Invoice</div>
+          <div id="tabRecordsBtn" class="nav-item">Invoice Records</div>
+          <div id="tabCompanyBtn" class="nav-item">Company Info</div>
+        </div>
+
+      </div>
+      <!-- /sidebarAppSection -->
+
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+
+      <div id="mainApp" style="display:none;">
+
+        <!-- COMPANY -->
+        <div id="paneCompany" style="display:none;">
+          <div class="card">
+            <h3>Company Info</h3>
+            <input type="text" id="companyName" placeholder="Company Name">
+            <textarea id="companyAddress" placeholder="Address" rows="3"></textarea>
+            <input type="text" id="companyPhone" placeholder="Phone">
+            <input type="text" id="companyGST" placeholder="GST / Tax">
+            <input type="number" id="defaultTax" placeholder="Default Tax %" min="0">
+            <div style="display:flex;gap:10px;margin-top:8px;">
+              <button id="saveCompanyBtn" class="primary">Save Company Info</button>
+              <div id="companyMsg" style="color:green;margin-top:6px;align-self:center;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CREATE -->
+        <div id="paneCreate">
+          <div class="create-grid">
+            <div class="card">
+              <h3>Client & Items</h3>
+
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <input type="text" id="clientName" placeholder="Client Name">
+                <input type="email" id="clientEmail" placeholder="Client Email">
+                <input type="text" id="clientPhone" placeholder="Client Phone">
+                <input type="date" id="dueDate" placeholder="Due date">
+              </div>
+
+              <div style="margin-top:12px;">
+                <h3 style="font-size:15px;margin-bottom:8px;">Items</h3>
+                <div id="itemsContainer"></div>
+
+                <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+                  <button id="addItemBtn" class="ghost">+ Add Item</button>
+                  <input type="number" id="taxInput" placeholder="Tax %" style="width:120px;" value="10">
+                  <select id="currencySelect" style="width:120px;">
+                    <option value="₹" selected>INR (₹)</option>
+                    <option value="$">USD ($)</option>
+                    <option value="€">EUR (€)</option>
+                  </select>
+                </div>
+
+                <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;">
+                  <button id="generateBtn" class="primary">Generate Invoice</button>
+                  <button id="deleteAllBtn" class="warn" style="display:none;">Delete All</button>
+                </div>
+              </div>
+            </div>
+
+            <aside class="summary card">
+              <h3 style="margin-top:0;">Summary</h3>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;justify-content:space-between;">
+                  <div class="small-muted">Total invoices</div>
+                  <div id="totalCountCopy" style="font-weight:800;">0</div>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;">
+                  <div class="small-muted">Last invoice</div>
+                  <div id="lastInvCopy" style="font-weight:800;">—</div>
+                </div>
+
+                <div style="margin-top:10px;">
+                  <div class="small-muted">Quick actions</div>
+                  <div style="display:flex;gap:8px;margin-top:8px;">
+                    <button id="quickViewBtn" class="ghost">View latest</button>
+                    <button id="exportAllBtn" class="ghost">Export</button>
+                  </div>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </div>
+
+        <!-- RECORDS -->
+        <div id="paneRecords" style="display:none;">
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <h3 style="margin:0;">Invoice Records</h3>
+              <input type="text" id="searchInput" placeholder="Search by client or ID" style="max-width:360px;padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,0.06);">
+            </div>
+
+            <table class="table" style="margin-top:12px;">
+              <thead>
+                <tr><th>ID</th><th>Client</th><th>Date</th><th>Total</th><th>Actions</th></tr>
+              </thead>
+              <tbody id="recordsBody"></tbody>
+            </table>
+
+            <div style="display:flex;justify-content:flex-end;margin-top:12px;">
+              <button id="deleteAllBtnFooter" class="warn">Delete All</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- logged out notice -->
+      <div id="loggedOutNotice" class="card" style="display:none;">
+        <h3>Welcome</h3>
+        <p class="small-muted">Please log in or register from the left panel to start creating invoices.</p>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- hidden copies used by JS (safe) -->
+  <div style="display:none;"><span id="totalCount-duplicate">0</span></div>
+
+  <!-- MODAL -->
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="header">
+        <div>
+          <h3 id="modalInv" style="margin:0;">Invoice #</h3>
+          <div id="modalDate" class="small-muted" style="margin-top:6px;">Date</div>
+        </div>
+        <div class="actions" style="display:flex;gap:8px;align-items:center;">
+          <button id="printBtn" class="primary">Print</button>
+          <button id="downloadBtn" class="ghost">Download PDF</button>
+          <button id="closeModalBtn" class="warn">Close</button>
+        </div>
+      </div>
+
+      <div id="modalContent">
+        <!-- Filled by JS -->
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ---------------- FIXED JS ---------------- -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // ---------------- Firebase Setup ----------------
+  const firebaseConfig = {
+    apiKey: "AIzaSyALJEa8u1PdLwmOjbtfWWpBRwdNwAIvKAU",
+    authDomain: "billing-database-18013.firebaseapp.com",
+    databaseURL: "https://billing-database-18013-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "billing-database-18013",
+    storageBucket: "billing-database-18013.appspot.com",
+    messagingSenderId: "108079794708",
+    appId: "1:108079794708:web:3cc0c8654b1520e835b501",
+    measurementId: "G-3K6LS952RP"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  // ---------------- Elements (explicit lookups) ----------------
+  const email = document.getElementById('email');
+  const password = document.getElementById('password');
+  const loginBtn = document.getElementById('loginBtn');
+  const registerBtn = document.getElementById('registerBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const authSection = document.getElementById('authSection');
+  const authMsg = document.getElementById('authMsg');
+  const sidebarAppSection = document.getElementById('sidebarAppSection');
+  const mainApp = document.getElementById('mainApp');
+  const loggedOutNotice = document.getElementById('loggedOutNotice');
+
+  const tabCreateBtn = document.getElementById('tabCreateBtn');
+  const tabRecordsBtn = document.getElementById('tabRecordsBtn');
+  const tabCompanyBtn = document.getElementById('tabCompanyBtn');
+
+  const paneCreate = document.getElementById('paneCreate');
+  const paneRecords = document.getElementById('paneRecords');
+  const paneCompany = document.getElementById('paneCompany');
+
+  // Company
+  const companyName = document.getElementById('companyName');
+  const companyAddress = document.getElementById('companyAddress');
+  const companyPhone = document.getElementById('companyPhone');
+  const companyGST = document.getElementById('companyGST');
+  const defaultTax = document.getElementById('defaultTax');
+  const saveCompanyBtn = document.getElementById('saveCompanyBtn');
+  const companyMsg = document.getElementById('companyMsg');
+
+  // Create
+  const clientName = document.getElementById('clientName');
+  const clientEmail = document.getElementById('clientEmail');
+  const clientPhone = document.getElementById('clientPhone');
+  const dueDate = document.getElementById('dueDate');
+  const itemsContainer = document.getElementById('itemsContainer');
+  const addItemBtn = document.getElementById('addItemBtn');
+  const taxInput = document.getElementById('taxInput');
+  const currencySelect = document.getElementById('currencySelect');
+  const generateBtn = document.getElementById('generateBtn');
+  const deleteAllBtn = document.getElementById('deleteAllBtn');
+
+  // Summary / records
+  const totalCount = document.getElementById('totalCount');
+  const lastInv = document.getElementById('lastInv');
+  const totalCountCopy = document.getElementById('totalCountCopy');
+  const lastInvCopy = document.getElementById('lastInvCopy');
+  const quickViewBtn = document.getElementById('quickViewBtn');
+  const exportAllBtn = document.getElementById('exportAllBtn');
+
+  // Records table
+  const recordsBody = document.getElementById('recordsBody');
+  const searchInput = document.getElementById('searchInput');
+  const deleteAllBtnFooter = document.getElementById('deleteAllBtnFooter');
+
+  // Modal
+  const modalBackdrop = document.getElementById('modalBackdrop');
+  const modalInv = document.getElementById('modalInv');
+  const modalDate = document.getElementById('modalDate');
+  const modalContent = document.getElementById('modalContent');
+  const closeModalBtn = document.getElementById('closeModalBtn');
+  const printBtn = document.getElementById('printBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+
+  // ----------------- Auth -----------------
+  loginBtn.addEventListener('click', async () => {
+    try {
+      await auth.signInWithEmailAndPassword(email.value.trim(), password.value);
+      authMsg.textContent = "Login successful";
+      setTimeout(() => authMsg.textContent = "", 1500);
+    } catch (e) {
+      alert(e.message || "Login failed");
+    }
+  });
+
+  registerBtn.addEventListener('click', async () => {
+    try {
+      await auth.createUserWithEmailAndPassword(email.value.trim(), password.value);
+      authMsg.textContent = "Registration successful";
+      setTimeout(() => authMsg.textContent = "", 1500);
+    } catch (e) {
+      alert(e.message || "Registration failed");
+    }
+  });
+
+  logoutBtn.addEventListener('click', () => auth.signOut());
+
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      authSection.style.display = "none";
+      mainApp.style.display = "block";
+      logoutBtn.style.display = "inline-block";
+      loggedOutNotice.style.display = "none";
+      sidebarAppSection.style.display = "block";
+      loadCompanyInfo().catch(err => console.warn(err));
+      loadInvoices(); // wire realtime listener
+      // default pane
+      showPane("create");
+    } else {
+      authSection.style.display = "block";
+      mainApp.style.display = "none";
+      logoutBtn.style.display = "none";
+      loggedOutNotice.style.display = "block";
+      sidebarAppSection.style.display = "none";
+    }
+  });
+
+  // ----------------- Tabs -----------------
+  tabCreateBtn.addEventListener('click', () => showPane("create"));
+  tabRecordsBtn.addEventListener('click', () => showPane("records"));
+  tabCompanyBtn.addEventListener('click', () => showPane("company"));
+
+  function showPane(x){
+    paneCreate.style.display = paneRecords.style.display = paneCompany.style.display = "none";
+    tabCreateBtn.classList.remove("active");
+    tabRecordsBtn.classList.remove("active");
+    tabCompanyBtn.classList.remove("active");
+
+    if(x==="create"){ paneCreate.style.display="block"; tabCreateBtn.classList.add("active"); }
+    if(x==="records"){ paneRecords.style.display="block"; tabRecordsBtn.classList.add("active"); }
+    if(x==="company"){ paneCompany.style.display="block"; tabCompanyBtn.classList.add("active"); }
+  }
+
+  // ----------------- Company Save -----------------
+  saveCompanyBtn.addEventListener('click', async () => {
+    const user = auth.currentUser;
+    if(!user){ alert("Login first"); return; }
+    const uid = user.uid;
+    await db.collection("companies").doc(uid).set({
+      name: companyName.value || "",
+      address: companyAddress.value || "",
+      phone: companyPhone.value || "",
+      gst: companyGST.value || "",
+      defaultTax: parseFloat(defaultTax.value || 0)
+    }, { merge: true });
+    companyMsg.textContent = "Saved!";
+    setTimeout(() => companyMsg.textContent="",1500);
+  });
+
+  async function loadCompanyInfo(){
+    const user = auth.currentUser;
+    if(!user) return;
+    const uid = user.uid;
+    const doc = await db.collection("companies").doc(uid).get();
+    if(doc.exists){
+      const c = doc.data();
+      companyName.value = c.name || "";
+      companyAddress.value = c.address || "";
+      companyPhone.value = c.phone || "";
+      companyGST.value = c.gst || "";
+      defaultTax.value = (c.defaultTax != null) ? c.defaultTax : 10;
+      taxInput.value = (c.defaultTax != null) ? c.defaultTax : 10;
+    } else {
+      defaultTax.value = 10;
+      taxInput.value = 10;
+    }
+  }
+
+  // ----------------- Items -----------------
+  function addItem(desc="", qty=1, price=0){
+    const row=document.createElement("div");
+    row.className="item-row";
+    row.innerHTML=`
+      <input class="desc" placeholder="Description" value="${escapeHtml(desc)}">
+      <input class="qty" type="number" min="1" value="${qty}">
+      <input class="price" type="number" min="0" step="0.01" value="${price}">
+      <button class="remove" title="Remove item">✕</button>
+    `;
+    row.querySelector(".remove").onclick=()=> {
+      row.remove();
+      // ensure there's always at least one empty row for UX
+      if(itemsContainer.children.length === 0) addItem();
+    };
+    itemsContainer.appendChild(row);
+  }
+
+  // small helper to avoid injection in value attributes
+  function escapeHtml(s){
+    if(!s) return "";
+    return String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/'/g,"&#39;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  addItemBtn.addEventListener('click', () => addItem());
+
+  // create an initial item row
+  if(itemsContainer.children.length === 0) addItem();
+
+  // ----------------- Auto invoice number -----------------
+  async function getNextInvoiceNumber(uid){
+    const ref = db.collection("counters").doc(uid);
+    let next = 1;
+
+    // Use a transaction and handle missing doc
+    await db.runTransaction(async t => {
+      const doc = await t.get(ref);
+      if(doc.exists && typeof doc.data().next === 'number'){
+        next = doc.data().next + 1;
+      } else {
+        next = 1;
+      }
+      t.set(ref, { next: next }, { merge: true });
+    });
+
+    return "INV-"+String(next).padStart(5,"0");
+  }
+
+  // ----------------- Generate invoice -----------------
+  generateBtn.addEventListener('click', async () => {
+    if(!clientName.value || clientName.value.trim() === ""){ alert("Enter client name"); return; }
+
+    const rows = Array.from(itemsContainer.querySelectorAll(".item-row"));
+    const items = []; let subtotal = 0;
+
+    rows.forEach(r=>{
+      const d = r.querySelector(".desc").value.trim();
+      const q = parseFloat(r.querySelector(".qty").value) || 0;
+      const p = parseFloat(r.querySelector(".price").value) || 0;
+      if(d && q > 0){
+        const total = parseFloat((q * p).toFixed(2));
+        items.push({ desc: d, qty: q, price: p, total: total });
+        subtotal += total;
+      }
+    });
+
+    if(items.length === 0){ alert("Add at least one item with a description and quantity"); return; }
+
+    const user = auth.currentUser;
+    if(!user){ alert("You must be logged in to generate invoices"); return; }
+    const uid = user.uid;
+
+    const tax = parseFloat(taxInput.value || 0);
+    const invoiceId = await getNextInvoiceNumber(uid);
+
+    const invoice = {
+      id: invoiceId,
+      userId: uid,
+      client: clientName.value.trim(),
+      clientEmail: clientEmail.value.trim(),
+      clientPhone: clientPhone.value.trim(),
+      items,
+      subtotal: parseFloat(subtotal.toFixed(2)),
+      taxPct: tax,
+      total: parseFloat((subtotal * (1 + (tax/100))).toFixed(2)),
+      currency: currencySelect.value,
+      date: new Date().toISOString().split("T")[0],
+      dueDate: dueDate.value || ""
+    };
+
+    // Save invoice doc
+    try {
+      await db.collection("invoices").doc(invoiceId).set(invoice);
+      // clear form and keep one blank item row
+      clientName.value = clientEmail.value = clientPhone.value = "";
+      dueDate.value = "";
+      itemsContainer.innerHTML = "";
+      addItem();
+      alert("Invoice " + invoiceId + " created");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save invoice: " + (err.message || err));
+    }
+  });
+
+  // ----------------- Load invoices (real-time) -----------------
+  function loadInvoices(){
+    const user = auth.currentUser;
+    if(!user) return;
+    const uid = user.uid;
+
+    // Listen for user's invoices (no orderBy to avoid index issues) and sort client-side
+    const q = db.collection("invoices").where("userId","==",uid);
+
+    q.onSnapshot(snap=>{
+      recordsBody.innerHTML = "";
+      const docs = snap.docs.map(d => d.data());
+
+      // sort by date desc then by id
+      docs.sort((a,b) => {
+        if(a.date === b.date) return (a.id > b.id) ? -1 : 1;
+        return (a.date > b.date) ? -1 : 1;
+      });
+
+      totalCount.textContent = docs.length;
+      totalCountCopy.textContent = docs.length;
+      document.getElementById('totalCount-duplicate').textContent = docs.length;
+      lastInv.textContent = docs.length ? docs[0].id : "—";
+      lastInvCopy.textContent = docs.length ? docs[0].id : "—";
+
+      docs.forEach(inv=>{
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escapeHtml(inv.id)}</td>
+          <td>${escapeHtml(inv.client)}</td>
+          <td>${escapeHtml(inv.date)}</td>
+          <td>${escapeHtml(inv.currency)} ${Number(inv.total).toFixed(2)}</td>>
+          <td>
+            <button class="viewBtn" data-id="${escapeHtml(inv.id)}">View</button>
+            <button class="delBtn" data-id="${escapeHtml(inv.id)}">Delete</button>
+          </td>
+        `;
+        recordsBody.appendChild(tr);
+      });
+
+      // wire buttons after rendering
+      Array.from(recordsBody.querySelectorAll(".viewBtn")).forEach(btn=>{
+        btn.onclick = () => openModal(btn.dataset.id);
+      });
+
+      Array.from(recordsBody.querySelectorAll(".delBtn")).forEach(btn=>{
+        btn.onclick = async () => {
+          if(confirm("Delete invoice " + btn.dataset.id + "?")){
+            await db.collection("invoices").doc(btn.dataset.id).delete();
+          }
+        };
+      });
+    }, err => {
+      console.error("Invoices snapshot error:", err);
+      alert("Failed to load invoices: " + (err.message || err));
+    });
+  }
+
+  // ----------------- Modal -----------------
+  function openModal(id){
+    db.collection("invoices").doc(id).get().then(doc=>{
+      if(!doc.exists) return;
+      const inv = doc.data();
+
+      modalInv.textContent = inv.id;
+      modalDate.textContent = inv.date || "";
+
+      let html = `
+        <h4>Client: ${escapeHtml(inv.client)}</h4>
+        <div>Email: ${escapeHtml(inv.clientEmail || "")}</div>
+        <div>Phone: ${escapeHtml(inv.clientPhone || "")}</div>
+        <br>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr><th style="text-align:left;padding:8px;border-bottom:1px solid rgba(0,0,0,0.06);">Description</th>
+            <th style="padding:8px;border-bottom:1px solid rgba(0,0,0,0.06);">Qty</th>
+            <th style="padding:8px;border-bottom:1px solid rgba(0,0,0,0.06);">Price</th>
+            <th style="padding:8px;border-bottom:1px solid rgba(0,0,0,0.06);">Total</th></tr>
+          </thead>
+          <tbody>
+      `;
+
+      inv.items.forEach(it => {
+        html += `<tr>
+          <td style="padding:8px;border-bottom:1px solid rgba(0,0,0,0.03);">${escapeHtml(it.desc)}</td>
+          <td style="padding:8px;border-bottom:1px solid rgba(0,0,0,0.03);">${escapeHtml(String(it.qty))}</td>
+          <td style="padding:8px;border-bottom:1px solid rgba(0,0,0,0.03);">${escapeHtml(inv.currency)} ${Number(it.price).toFixed(2)}</td>
+          <td style="padding:8px;border-bottom:1px solid rgba(0,0,0,0.03);">${escapeHtml(inv.currency)} ${Number(it.total).toFixed(2)}</td>
+        </tr>`;
+      });
+
+      html += `</tbody></table><br>
+        Subtotal: ${escapeHtml(inv.currency)} ${Number(inv.subtotal).toFixed(2)}<br>
+        Tax: ${escapeHtml(String(inv.taxPct))}%<br>
+        <b>Total: ${escapeHtml(inv.currency)} ${Number(inv.total).toFixed(2)}</b>
+      `;
+
+      modalContent.innerHTML = html;
+      modalBackdrop.style.display = "flex";
+    }).catch(err => console.error(err));
+  }
+
+  closeModalBtn.addEventListener('click', () => modalBackdrop.style.display = "none");
+
+  printBtn.addEventListener('click', () => {
+    const w = window.open("", "_blank");
+    if(!w) { alert("Please allow popups for printing."); return; }
+    const styles = Array.from(document.querySelectorAll('style,link[rel="stylesheet"]')).map(n => n.outerHTML).join("\n");
+    w.document.write(`<html><head><title>${modalInv.textContent}</title>${styles}</head><body>${modalContent.innerHTML}</body></html>`);
+    w.document.close();
+    w.focus();
+    w.print();
+    // do not close automatically so user can see print dialog result
+  });
+
+  downloadBtn.addEventListener('click', () => {
+    // html2pdf accepts an element; pass modalContent
+    try {
+      html2pdf().from(modalContent).save(modalInv.textContent + ".pdf");
+    } catch (err) {
+      console.error(err);
+      alert("PDF download failed: " + (err.message || err));
+    }
+  });
+
+  // ----------------- Delete All -----------------
+  deleteAllBtn.addEventListener('click', async () => {
+    const user = auth.currentUser;
+    if(!user){ alert("Login first"); return; }
+    if(confirm("Delete ALL invoices?")){
+      const snap = await db.collection("invoices").where("userId","==",user.uid).get();
+      const batch = db.batch();
+      snap.forEach(d => batch.delete(d.ref));
+      await batch.commit();
+    }
+  });
+
+  deleteAllBtnFooter.addEventListener('click', async () => {
+    const user = auth.currentUser;
+    if(!user){ alert("Login first"); return; }
+    if(confirm("Delete ALL invoices?")){
+      const snap = await db.collection("invoices").where("userId","==",user.uid).get();
+      const batch = db.batch();
+      snap.forEach(d => batch.delete(d.ref));
+      await batch.commit();
+    }
+  });
+
+  // ----------------- Search -----------------
+  searchInput.addEventListener('input', () => {
+    const f = searchInput.value.toLowerCase();
+    Array.from(recordsBody.querySelectorAll("tr")).forEach(tr => {
+      const id = tr.cells[0]?.textContent?.toLowerCase() || "";
+      const client = tr.cells[1]?.textContent?.toLowerCase() || "";
+      tr.style.display = (id.includes(f) || client.includes(f)) ? "" : "none";
+    });
+  });
+
+  // Quick view button - open last invoice if exists
+  quickViewBtn.addEventListener('click', () => {
+    const id = lastInv.textContent;
+    if(id && id !== "—") openModal(id);
+  });
+
+  // Export all: simple JSON download
+  exportAllBtn.addEventListener('click', async () => {
+    const user = auth.currentUser;
+    if(!user){ alert("Login first"); return; }
+    const snap = await db.collection("invoices").where("userId","==",user.uid).get();
+    const arr = snap.docs.map(d => d.data());
+    const blob = new Blob([JSON.stringify(arr, null, 2)], {type: "application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "invoices.json";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+});
+</script>
+
+</body>
+</html>
