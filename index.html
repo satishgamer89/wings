@@ -263,9 +263,9 @@ button.warn{background:linear-gradient(90deg,#ef4444,#f97316);color:#fff;}
 
                 <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
                   <button id="addItemBtn" class="ghost">+ Add Item</button>
-                  <input type="number" id="taxInput" placeholder="Tax %" style="width:120px;">
+                  <input type="number" id="taxInput" placeholder="Tax %" style="width:120px;" value="10">
                   <select id="currencySelect" style="width:120px;">
-                    <option value="₹">INR (₹)</option>
+                    <option value="₹" selected>INR (₹)</option>
                     <option value="$">USD ($)</option>
                     <option value="€">EUR (€)</option>
                   </select>
@@ -648,21 +648,26 @@ document.addEventListener('DOMContentLoaded', () => {
     if(!user) return;
     const uid = user.uid;
 
-    // Listen for user's invoices ordered by date desc (date is ISO yyyy-mm-dd)
-    // Note: Firestore requires indexes for some compound queries but this is a simple where+orderBy on different fields;
-    // if your project asks you to create an index, follow Firestore console link.
-    const q = db.collection("invoices").where("userId","==",uid).orderBy("date","desc");
+    // Listen for user's invoices (no orderBy to avoid index issues) and sort client-side
+    const q = db.collection("invoices").where("userId","==",uid);
 
     q.onSnapshot(snap=>{
       recordsBody.innerHTML = "";
-      totalCount.textContent = snap.size;
-      totalCountCopy.textContent = snap.size;
-      totalCount && (document.getElementById('totalCount-duplicate').textContent = snap.size);
-      lastInv.textContent = snap.size ? snap.docs[0].data().id : "—";
-      lastInvCopy.textContent = snap.size ? snap.docs[0].data().id : "—";
+      const docs = snap.docs.map(d => d.data());
 
-      snap.docs.forEach(doc=>{
-        const inv = doc.data();
+      // sort by date desc then by id
+      docs.sort((a,b) => {
+        if(a.date === b.date) return (a.id > b.id) ? -1 : 1;
+        return (a.date > b.date) ? -1 : 1;
+      });
+
+      totalCount.textContent = docs.length;
+      totalCountCopy.textContent = docs.length;
+      document.getElementById('totalCount-duplicate').textContent = docs.length;
+      lastInv.textContent = docs.length ? docs[0].id : "—";
+      lastInvCopy.textContent = docs.length ? docs[0].id : "—";
+
+      docs.forEach(inv=>{
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${escapeHtml(inv.id)}</td>
@@ -691,6 +696,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }, err => {
       console.error("Invoices snapshot error:", err);
+      alert("Failed to load invoices: " + (err.message || err));
     });
   }
 
